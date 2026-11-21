@@ -430,28 +430,30 @@ const AppAnalytics = (function () {
 
     /**
      * Compute 6 Thursday cycles based on current reference date or filtered end date
+     * Ensures the current ongoing week is included up to the upcoming Thursday
      */
     function getThursdayWeeks() {
         const weeks = [];
         const refDate = filterEndDate ? new Date(filterEndDate + 'T23:59:59.999') : new Date();
 
-        // Calculate most recent Thursday from reference date
+        // Calculate upcoming Thursday cycle boundary (so current week transactions are captured)
         const dayOfWeek = refDate.getDay(); // 0: Sun, 1: Mon, 2: Tue, 3: Wed, 4: Thu, 5: Fri, 6: Sat
-        const diffToThursday = (dayOfWeek >= 4) ? (dayOfWeek - 4) : (dayOfWeek + 3);
+        const daysUntilNextThursday = (4 - dayOfWeek + 7) % 7;
 
-        const mostRecentThursday = new Date(
+        const currentCycleThursday = new Date(
             refDate.getFullYear(),
             refDate.getMonth(),
-            refDate.getDate() - diffToThursday,
+            refDate.getDate() + daysUntilNextThursday,
             23, 59, 59, 999
         );
 
         for (let i = 5; i >= 0; i--) {
-            const endOfWeek = new Date(mostRecentThursday.getTime() - (i * 7) * 24 * 60 * 60 * 1000);
+            const endOfWeek = new Date(currentCycleThursday.getTime() - (i * 7) * 24 * 60 * 60 * 1000);
             const startOfWeek = new Date(endOfWeek.getTime() - 7 * 24 * 60 * 60 * 1000 + 1);
 
             const thuDayMonth = endOfWeek.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
-            const label = `Thu, ${thuDayMonth}`;
+            const isCurrent = (i === 0 && !filterEndDate);
+            const label = `Thu, ${thuDayMonth}${isCurrent ? ' (Current)' : ''}`;
 
             weeks.push({
                 index: i,

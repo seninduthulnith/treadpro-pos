@@ -657,6 +657,9 @@
                         </div>
                         <div class="view-actions" style="display: flex; gap: 10px; align-items: center;">
                             <span class="badge badge-primary" id="customersTotalCount" style="padding: 6px 12px; font-size: 12px;">0 Registered</span>
+                            <button class="btn btn-outline-primary btn-sm" id="btnOpenLoyaltyConfig" data-permission="loyalty_manage">
+                                ⚙️ Loyalty & Tier Settings
+                            </button>
                         </div>
                     </div>
 
@@ -1277,6 +1280,84 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary" onclick="closeModal('vehicleHistoryModal')">Close</button>
             </div>
+        </div>
+    </div>
+
+    <!-- 8. Loyalty Program & Membership Tier Settings Modal (Manager & Admin) -->
+    <div id="loyaltySettingsModal" class="modal-overlay">
+        <div class="modal-dialog" style="max-width: 520px;">
+            <div class="modal-header">
+                <h3>⚙️ Loyalty Rules & Membership Tiers</h3>
+                <button class="btn-modal-close" onclick="closeModal('loyaltySettingsModal')">✕</button>
+            </div>
+            <form id="loyaltySettingsForm">
+                <div class="modal-body">
+                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+                        Configure how customer loyalty points are earned and how membership tiers are ranked.
+                    </p>
+
+                    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 14px; margin-bottom: 16px;">
+                        <h4 style="font-size: 13.5px; font-weight: 700; color: #166534; margin: 0 0 10px 0;">
+                            🪙 Points Earning & Redemption Rate
+                        </h4>
+                        <div class="form-row">
+                            <div class="form-group" style="margin-bottom: 8px;">
+                                <label for="loyaltySpendPerPoint" style="font-size: 12px; font-weight: 600;">Spend to earn 1 Point (Rs.) *</label>
+                                <input type="number" id="loyaltySpendPerPoint" class="form-control" min="1" max="10000" step="1" required value="100">
+                                <span style="font-size: 11px; color: var(--text-muted);">Default: 1 Point per Rs. 100 spent</span>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 8px;">
+                                <label for="loyaltyRedeemValue" style="font-size: 12px; font-weight: 600;">1 Point discount value (Rs.) *</label>
+                                <input type="number" id="loyaltyRedeemValue" class="form-control" min="0.1" max="100" step="0.1" required value="1">
+                                <span style="font-size: 11px; color: var(--text-muted);">Default: 1 Point = Rs. 1.00</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px; padding: 14px;">
+                        <h4 style="font-size: 13.5px; font-weight: 700; color: #1e293b; margin: 0 0 10px 0;">
+                            ★ Membership Tier Thresholds
+                        </h4>
+                        
+                        <div class="form-group" style="margin-bottom: 10px;">
+                            <label style="font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                                <span class="badge badge-secondary" style="font-size: 11px;">★ Bronze Member</span>
+                                <span>Entry Tier</span>
+                            </label>
+                            <input type="text" class="form-control" value="0 points (All registered customers)" disabled style="background: #f1f5f9; color: #64748b;">
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group" style="margin-bottom: 10px;">
+                                <label for="loyaltySilverMin" style="font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                                    <span class="badge badge-info" style="font-size: 11px;">★ Silver Member</span>
+                                    <span>Min Points *</span>
+                                </label>
+                                <input type="number" id="loyaltySilverMin" class="form-control" min="10" step="10" required value="200">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 10px;">
+                                <label for="loyaltyGoldMin" style="font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                                    <span class="badge badge-warning" style="font-size: 11px;">★ Gold Member</span>
+                                    <span>Min Points *</span>
+                                </label>
+                                <input type="number" id="loyaltyGoldMin" class="form-control" min="20" step="10" required value="500">
+                            </div>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 0;">
+                            <label for="loyaltyPlatinumMin" style="font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                                <span class="badge badge-primary" style="font-size: 11px;">★ Platinum VIP</span>
+                                <span>Min Points (Optional)</span>
+                            </label>
+                            <input type="number" id="loyaltyPlatinumMin" class="form-control" min="50" step="50" value="1000" placeholder="e.g. 1000 (0 to disable)">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" onclick="closeModal('loyaltySettingsModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Loyalty Configuration</button>
+                </div>
+            </form>
         </div>
     </div>
 

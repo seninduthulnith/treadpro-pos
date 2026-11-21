@@ -305,8 +305,9 @@ const AppPOS = (function () {
 
         if (banner) {
             banner.style.display = 'block';
+            const discVal = cust.discountValue !== undefined ? cust.discountValue : cust.loyaltyPoints;
             if (pointsText) pointsText.textContent = `${cust.loyaltyPoints} Loyalty Points Available`;
-            if (discountText) discountText.textContent = `${currency}${cust.loyaltyPoints} discount value available`;
+            if (discountText) discountText.textContent = `${currency}${discVal.toFixed(2)} discount value available`;
 
             if (lastTyresEl) {
                 if (cust.fittedTyres && cust.fittedTyres.length > 0) {
@@ -345,7 +346,9 @@ const AppPOS = (function () {
         }
 
         const totals = calculateTotals();
-        const availableDiscount = activeCustomerProfile.loyaltyPoints;
+        const availableDiscount = activeCustomerProfile.discountValue !== undefined 
+            ? activeCustomerProfile.discountValue 
+            : activeCustomerProfile.loyaltyPoints;
         // Discount cannot exceed subtotal
         const discountToApply = Math.min(totals.subtotal, availableDiscount);
 
@@ -354,7 +357,7 @@ const AppPOS = (function () {
             discountInput.value = discountToApply;
             renderCartSummary();
             calculateChange();
-            AppNotification.toast('Loyalty Redeemed', `Applied ${AppSettings.getCurrency()}${discountToApply} loyalty discount!`, 'success');
+            AppNotification.toast('Loyalty Redeemed', `Applied ${AppSettings.getCurrency()}${discountToApply.toFixed(2)} loyalty discount!`, 'success');
         }
     }
 

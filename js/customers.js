@@ -11,11 +11,48 @@ const AppCustomers = (function () {
     let customerList = [];
     let currentFilter = '';
 
+    // Configurable Loyalty & Membership Tier Settings (editable by Manager & Admin)
+    let loyaltyRules = {
+        spendPerPoint: 100,      // Spend Rs. X to earn 1 Point
+        pointValue: 1.0,         // 1 Point = Rs. Y discount
+        silverMin: 200,          // Silver Tier min points
+        goldMin: 500,            // Gold Tier min points
+        platinumMin: 1000        // Platinum VIP min points (0 to disable)
+    };
+
     /**
      * Initialize Customers Module
      */
     async function init() {
         bindEvents();
+        await loadLoyaltyRules();
+    }
+
+    /**
+     * Load Loyalty rules from DB settings
+     */
+    async function loadLoyaltyRules() {
+        try {
+            const stored = await AppDB.getById('settings', 'loyaltyRules');
+            if (stored && stored.value) {
+                loyaltyRules = { ...loyaltyRules, ...stored.value };
+            }
+        } catch (e) {
+            console.warn('Could not load custom loyalty rules:', e);
+        }
+    }
+
+    /**
+     * Save Loyalty rules to DB settings
+     */
+    async function saveLoyaltyRules(newRules) {
+        loyaltyRules = { ...loyaltyRules, ...newRules };
+        await AppDB.update('settings', { key: 'loyaltyRules', value: loyaltyRules });
+        if (window.AppFirebase && AppFirebase.isReady()) {
+            AppFirebase.syncRecord('settings', { key: 'loyaltyRules', value: loyaltyRules }).catch(() => {});
+        }
+        await loadCustomers();
+        AppNotification.toast('Settings Saved', 'Loyalty points earning rate and membership tiers updated!', 'success');
     }
 
     /**
@@ -29,6 +66,58 @@ const AppCustomers = (function () {
                 renderCustomersList();
             });
         }
+
+        // Open Loyalty Config Modal button
+        const btnOpenConfig = document.getElementById('btnOpenLoyaltyConfig');
+        if (btnOpenConfig) {
+            btnOpenConfig.addEventListener('click', openLoyaltyConfigModal);
+        }
+
+        // Loyalty Config Form submit
+        const configForm = document.getElementById('loyaltySettingsForm');
+        if (configForm) {
+            configForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const spendInput = document.getElementById('loyaltySpendPerPoint');
+                const valueInput = document.getElementById('loyaltyRedeemValue');
+                const silverInput = document.getElementById('loyaltySilverMin');
+                const goldInput = document.getElementById('loyaltyGoldMin');
+                const platInput = document.getElementById('loyaltyPlatinumMin');
+
+                const newRules = {
+                    spendPerPoint: Math.max(1, parseFloat(spendInput.value) || 100),
+                    pointValue: Math.max(0.1, parseFloat(valueInput.value) || 1.0),
+                    silverMin: Math.max(1, parseInt(silverInput.value, 10) || 200),
+                    goldMin: Math.max(1, parseInt(goldInput.value, 10) || 500),
+                    platinumMin: parseInt(platInput.value, 10) || 0
+                };
+
+                saveLoyaltyRules(newRules);
+                closeModal('loyaltySettingsModal');
+            });
+        }
+    }
+
+    /**
+     * Open Loyalty Config Modal and populate with current rules
+     */
+    function openLoyaltyConfigModal() {
+        const modal = document.getElementById('loyaltySettingsModal');
+        if (!modal) return;
+
+        const spendInput = document.getElementById('loyaltySpendPerPoint');
+        const valueInput = document.getElementById('loyaltyRedeemValue');
+        const silverInput = document.getElementById('loyaltySilverMin');
+        const goldInput = document.getElementById('loyaltyGoldMin');
+        const platInput = document.getElementById('loyaltyPlatinumMin');
+
+        if (spendInput) spendInput.value = loyaltyRules.spendPerPoint;
+        if (valueInput) valueInput.value = loyaltyRules.pointValue;
+        if (silverInput) silverInput.value = loyaltyRules.silverMin;
+        if (goldInput) goldInput.value = loyaltyRules.goldMin;
+        if (platInput) platInput.value = loyaltyRules.platinumMin || 0;
+
+        modal.classList.add('active');
     }
 
     /**
@@ -127,18 +216,29 @@ const AppCustomers = (function () {
             }
         });
 
-        // Compute Loyalty Points & Tier
-        // Rule: 1 Loyalty Point for every Rs. 100 spent (Rs. 1 discount per point)
+        // Compute Loyalty Points & Tier based on shop configurable loyaltyRules
         const list = Object.values(map);
-        list.forEach(c => {
-            c.loyaltyPoints = Math.floor(c.totalSpent / 100);
+        const spendRate = loyaltyRules.spendPerPoint > 0 ? loyaltyRules.spendPerPoint : 100;
+        const pValue = loyaltyRules.pointValue > 0 ? loyaltyRules.pointValue : 1.0;
+        const silverMin = loyaltyRules.silverMin || 200;
+        const goldMin = loyaltyRules.goldMin || 500;
+        const platMin = loyaltyRules.platinumMin || 0;
 
-            // Tiers: Bronze (0 - 200 pts), Silver (201 - 500 pts), Gold (501+ pts)
-            if (c.loyaltyPoints >= 500) {
+        list.forEach(c => {
+            // User-defined: 1 Point for every Rs. X spent
+            c.loyaltyPoints = Math.floor(c.totalSpent / spendRate);
+            c.discountValue = c.loyaltyPoints * pValue;
+
+            // Tier evaluation according to manager-configured thresholds
+            if (platMin > 0 && c.loyaltyPoints >= platMin) {
+                c.tier = 'Platinum VIP';
+                c.tierColor = '#0284c7'; // Cyan/Platinum
+                c.tierBadge = 'badge-primary';
+            } else if (c.loyaltyPoints >= goldMin) {
                 c.tier = 'Gold';
                 c.tierColor = '#f59e0b'; // Gold
                 c.tierBadge = 'badge-warning';
-            } else if (c.loyaltyPoints >= 200) {
+            } else if (c.loyaltyPoints >= silverMin) {
                 c.tier = 'Silver';
                 c.tierColor = '#64748b'; // Silver
                 c.tierBadge = 'badge-info';
@@ -314,7 +414,7 @@ const AppCustomers = (function () {
                             ★ ${c.tier} Member
                         </span>
                         <div style="font-size: 15px; font-weight: 800; color: #0284c7; margin-top: 6px;">
-                            ${c.loyaltyPoints} Points (${currency}${c.loyaltyPoints} Discount)
+                            ${c.loyaltyPoints} Points (${currency}${(c.discountValue || c.loyaltyPoints).toFixed(2)} Discount)
                         </div>
                     </div>
                 </div>
@@ -414,7 +514,9 @@ const AppCustomers = (function () {
         loadCustomers,
         searchReturningCustomer,
         getCustomerByPlate,
-        openVehicleHistoryModal
+        openVehicleHistoryModal,
+        openLoyaltyConfigModal,
+        getLoyaltyRules: () => ({ ...loyaltyRules })
     };
 })();
 

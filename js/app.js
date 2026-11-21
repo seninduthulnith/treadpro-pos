@@ -391,12 +391,18 @@ const AppRouter = (function () {
      * Clear all inventory items, sales records, and purchase orders.
      */
     async function clearAllStoreData() {
-        const confirm1 = confirm("WARNING: Are you sure you want to delete ALL inventory items, sales records, and purchases?\n\nThis will clear all data so you can enter your new real data. (User accounts and shop settings will be preserved).");
+        const confirm1 = confirm("WARNING: Are you sure you want to delete ALL inventory items, sales records, and purchases?\n\nThis will clear all data locally and in Google Cloud Firebase so you can enter your new real data. (User accounts and shop settings will be preserved).");
         if (!confirm1) return;
 
         try {
             await AppDB.clearAllHistoricalData();
-            AppNotification.toast('Data Cleared', 'All inventory items, sales, and purchases have been wiped clean. Ready for new real data.', 'success');
+
+            // Also delete old data from Google Cloud Firebase
+            if (window.AppFirebase && AppFirebase.isReady()) {
+                await AppFirebase.clearCloudStoreData();
+            }
+
+            AppNotification.toast('Data Cleared', 'All inventory items, sales, and purchases have been wiped clean locally and in Google Cloud. Ready for new real data.', 'success');
 
             // Refresh all views
             if (window.AppInventory) await AppInventory.loadItems();

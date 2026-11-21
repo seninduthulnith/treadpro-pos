@@ -143,6 +143,35 @@ const AppFirebase = (function () {
     }
 
     /**
+     * Clear Cloud Firestore Collections for items, sales, and purchases
+     * Called when the user chooses to start fresh with real data.
+     */
+    async function clearCloudStoreData() {
+        if (!isReady()) return;
+
+        updateSyncStatusUI('Clearing historical data from Google Cloud...', 'warning');
+
+        const storesToClear = ['items', 'sales', 'purchases'];
+
+        for (const storeName of storesToClear) {
+            try {
+                const snap = await fbDb.collection(storeName).get();
+                if (!snap.empty) {
+                    const batch = fbDb.batch();
+                    snap.docs.forEach(doc => {
+                        batch.delete(doc.ref);
+                    });
+                    await batch.commit();
+                }
+            } catch (err) {
+                console.warn(`Failed to clear Firestore collection [${storeName}]:`, err);
+            }
+        }
+
+        updateSyncStatusUI('Google Cloud cleared. Ready for fresh data.', 'success');
+    }
+
+    /**
      * Restore ALL shop records from Cloud Firestore down into local IndexedDB
      */
     async function restoreAllFromCloud() {
@@ -199,6 +228,7 @@ const AppFirebase = (function () {
         isReady,
         syncRecord,
         backupAllToCloud,
+        clearCloudStoreData,
         restoreAllFromCloud
     };
 })();

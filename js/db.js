@@ -136,7 +136,12 @@ const AppDB = (function () {
             const tx = db.transaction(storeName, 'readwrite');
             const store = tx.objectStore(storeName);
             const request = store.add(item);
-            request.onsuccess = () => resolve(item);
+            request.onsuccess = () => {
+                if (window.AppFirebase && AppFirebase.isReady()) {
+                    AppFirebase.syncRecord(storeName, item).catch(() => {});
+                }
+                resolve(item);
+            };
             request.onerror = () => reject(request.error);
         });
     }
@@ -150,7 +155,12 @@ const AppDB = (function () {
             const tx = db.transaction(storeName, 'readwrite');
             const store = tx.objectStore(storeName);
             const request = store.put(item);
-            request.onsuccess = () => resolve(item);
+            request.onsuccess = () => {
+                if (window.AppFirebase && AppFirebase.isReady()) {
+                    AppFirebase.syncRecord(storeName, item).catch(() => {});
+                }
+                resolve(item);
+            };
             request.onerror = () => reject(request.error);
         });
     }
@@ -206,7 +216,12 @@ const AppDB = (function () {
                 }
             });
 
-            tx.oncomplete = () => resolve(saleData);
+            tx.oncomplete = () => {
+                if (window.AppFirebase && AppFirebase.isReady()) {
+                    AppFirebase.syncRecord('sales', saleData).catch(() => {});
+                }
+                resolve(saleData);
+            };
             tx.onerror = () => reject(tx.error);
         });
     }
@@ -241,7 +256,12 @@ const AppDB = (function () {
                 };
             });
 
-            tx.oncomplete = () => resolve(purchaseData);
+            tx.oncomplete = () => {
+                if (window.AppFirebase && AppFirebase.isReady()) {
+                    AppFirebase.syncRecord('purchases', purchaseData).catch(() => {});
+                }
+                resolve(purchaseData);
+            };
             tx.onerror = () => reject(tx.error);
         });
     }

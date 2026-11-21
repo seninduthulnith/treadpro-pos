@@ -439,7 +439,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 1. Initialize IndexedDB
         await AppDB.openDB();
 
-        // 2. Load Settings
+        // 2. Initialize Firebase Cloud Sync
+        if (window.AppFirebase) {
+            try {
+                AppFirebase.init();
+            } catch (fbInitErr) {
+                console.warn('Firebase init deferred:', fbInitErr);
+            }
+        }
+
+        // 3. Load Settings
         await AppSettings.load();
 
         // 3. Initialize Authentication

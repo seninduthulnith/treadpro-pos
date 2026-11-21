@@ -772,6 +772,29 @@
                                 </ul>
                             </div>
 
+                            <!-- Google Firebase Cloud Sync Block -->
+                            <div style="border-top: 1px solid var(--border-color); padding-top: 16px; margin-bottom: 16px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <h4 style="font-size: 13.5px; font-weight: 700; margin: 0; color: #0284c7;">
+                                        🔥 Google Firebase Cloud Backup & Sync
+                                    </h4>
+                                    <span id="firebaseStatusBadge" class="badge badge-success" style="font-size: 11px;">
+                                        Connected
+                                    </span>
+                                </div>
+                                <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
+                                    Project: <code>treadpro-pos</code> (100% Free Spark Tier). Real-time mirror for inventory, sales & shop settings.
+                                </p>
+                                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                    <button type="button" class="btn btn-primary btn-sm" onclick="AppFirebase.backupAllToCloud()">
+                                        ☁️ Backup All to Google Cloud Now
+                                    </button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="AppFirebase.restoreAllFromCloud()">
+                                        🔄 Restore from Google Cloud
+                                    </button>
+                                </div>
+                            </div>
+
                             <div style="border-top: 1px solid var(--border-color); padding-top: 16px; margin-bottom: 16px;">
                                 <h4 style="font-size: 13.5px; font-weight: 700; margin-bottom: 8px;">Backup Database</h4>
                                 <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">
@@ -1235,7 +1258,13 @@
         </div>
     </div>
 
+    <!-- Firebase Cloud SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics-compat.js"></script>
+
     <!-- Application JavaScript Modules -->
+    <script src="js/firebase.js"></script>
     <script src="js/crypto.js"></script>
     <script src="js/db.js"></script>
     <script src="js/auth.js"></script>

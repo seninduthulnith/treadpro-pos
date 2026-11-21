@@ -1,0 +1,659 @@
+/**
+ * TreadPro Inventory Management Module
+ * Handles Tyres, Tubes, Stock Movements, Stock In / Purchasing, and Thresholds.
+ */
+
+const AppInventory = (function () {
+    'use strict';
+
+    let currentItems = [];
+    let activeFilter = {
+        search: '',
+        category: 'all',
+        vehicleType: 'all',
+        stockStatus: 'all'
+    };
+
+    /**
+     * Initialize Inventory Module
+     */
+    async function init() {
+        await loadItems();
+        bindEvents();
+    }
+
+    /**
+     * Load all inventory items from IndexedDB
+     */
+    async function loadItems() {
+        currentItems = await AppDB.getAll('items');
+        renderInventoryTable();
+        updateInventorySummaryCards();
+    }
+
+    /**
+     * Get all items currently in memory
+     */
+    function getItems() {
+        return currentItems;
+    }
+
+    /**
+     * Get single item by ID
+     */
+    function getItemById(id) {
+        return currentItems.find(item => item.id === id);
+    }
+
+    /**
+     * Bind UI event listeners
+     */
+    function bindEvents() {
+        // Search input
+        const searchInput = document.getElementById('inventorySearchInput');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                activeFilter.search = e.target.value.toLowerCase().trim();
+                renderInventoryTable();
+            });
+        }
+
+        // Category filter
+        const categoryFilter = document.getElementById('inventoryCategoryFilter');
+        if (categoryFilter) {
+            categoryFilter.addEventListener('change', (e) => {
+                activeFilter.category = e.target.value;
+                renderInventoryTable();
+            });
+        }
+
+        // Vehicle type filter
+        const vehicleFilter = document.getElementById('inventoryVehicleFilter');
+        if (vehicleFilter) {
+            vehicleFilter.addEventListener('change', (e) => {
+                activeFilter.vehicleType = e.target.value;
+                renderInventoryTable();
+            });
+        }
+
+        // Stock status filter
+        const statusFilter = document.getElementById('inventoryStatusFilter');
+        if (statusFilter) {
+            statusFilter.addEventListener('change', (e) => {
+                activeFilter.stockStatus = e.target.value;
+                renderInventoryTable();
+            });
+        }
+
+        // Add Item Form Submit
+        const itemForm = document.getElementById('itemForm');
+        if (itemForm) {
+            itemForm.addEventListener('submit', handleSaveItem);
+        }
+
+        // Category change in Add Item modal to show/hide tyre vs tube specific fields
+        const modalCategorySelect = document.getElementById('itemCategory');
+        if (modalCategorySelect) {
+            modalCategorySelect.addEventListener('change', handleCategoryFieldToggle);
+        }
+
+        // Stock In Form Submit
+        const stockInForm = document.getElementById('stockInForm');
+        if (stockInForm) {
+            stockInForm.addEventListener('submit', handleStockInSubmit);
+        }
+
+        // Auto SKU Generate Button
+        const generateSkuBtn = document.getElementById('generateSkuBtn');
+        if (generateSkuBtn) {
+            generateSkuBtn.addEventListener('click', generateAutoSKU);
+        }
+    }
+
+    /**
+     * Toggle specific fields (Valve type vs Ply rating) based on category
+     */
+    function handleCategoryFieldToggle() {
+        const cat = document.getElementById('itemCategory').value;
+        const valveGroup = document.getElementById('valveTypeGroup');
+        const plyGroup = document.getElementById('plyRatingGroup');
+
+        if (cat === 'tube') {
+            if (valveGroup) valveGroup.style.display = 'block';
+            if (plyGroup) plyGroup.style.display = 'none';
+        } else {
+            if (valveGroup) valveGroup.style.display = 'none';
+            if (plyGroup) plyGroup.style.display = 'block';
+        }
+    }
+
+    /**
+     * Generates a clean readable SKU based on Brand, Category and Size
+     */
+    function generateAutoSKU() {
+        const cat = (document.getElementById('itemCategory')?.value || 'TYR').substring(0, 3).toUpperCase();
+        const brand = (document.getElementById('itemBrand')?.value || 'GEN').substring(0, 3).toUpperCase().replace(/[^A-Z]/g, '');
+        const size = (document.getElementById('itemSize')?.value || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase().substring(0, 7);
+        const randomHex = Math.floor(100 + Math.random() * 900);
+        const sku = `${cat}-${brand || 'GEN'}-${size || 'STD'}-${randomHex}`;
+        const skuInput = document.getElementById('itemSku');
+        if (skuInput) skuInput.value = sku;
+    }
+
+    /**
+     * Render the Inventory Table
+     */
+    function renderInventoryTable() {
+        const tbody = document.getElementById('inventoryTableBody');
+        if (!tbody) return;
+
+        const canViewCosts = AppAuth.hasPermission('inventory_costs');
+        const canManage = AppAuth.hasPermission('inventory_manage');
+
+        let filtered = currentItems.filter(item => {
+            // Search text
+            if (activeFilter.search) {
+                const query = activeFilter.search;
+                const match =
+                    (item.name && item.name.toLowerCase().includes(query)) ||
+                    (item.brand && item.brand.toLowerCase().includes(query)) ||
+                    (item.size && item.size.toLowerCase().includes(query)) ||
+                    (item.sku && item.sku.toLowerCase().includes(query)) ||
+                    (item.pattern && item.pattern.toLowerCase().includes(query));
+                if (!match) return false;
+            }
+
+            // Category filter
+            if (activeFilter.category !== 'all' && item.category !== activeFilter.category) {
+                return false;
+            }
+
+            // Vehicle type filter
+            if (activeFilter.vehicleType !== 'all' && item.vehicleType !== activeFilter.vehicleType) {
+                return false;
+            }
+
+            // Stock status filter
+            const stock = item.stock || 0;
+            const minAlert = item.minStockAlert || 5;
+            if (activeFilter.stockStatus === 'in_stock' && stock <= minAlert) return false;
+            if (activeFilter.stockStatus === 'low_stock' && (stock <= 0 || stock > minAlert)) return false;
+            if (activeFilter.stockStatus === 'out_of_stock' && stock > 0) return false;
+
+            return true;
+        });
+
+        if (filtered.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="${canViewCosts ? 10 : 8}" class="empty-table-cell">
+                        <div class="empty-state">
+                            <span class="empty-icon">🔍</span>
+                            <p>No tyre or tube items found matching your filters.</p>
+                            ${canManage ? '<button class="btn btn-primary btn-sm" onclick="AppInventory.openItemModal()">+ Add New Tyre/Tube</button>' : ''}
+                        </div>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        const currency = AppSettings.getCurrency();
+
+        tbody.innerHTML = filtered.map(item => {
+            const stock = item.stock || 0;
+            const minAlert = item.minStockAlert || 5;
+            let stockBadge = '<span class="badge badge-success">In Stock</span>';
+            if (stock === 0) {
+                stockBadge = '<span class="badge badge-danger">Out of Stock</span>';
+            } else if (stock <= minAlert) {
+                stockBadge = `<span class="badge badge-warning">Low Stock (${stock})</span>`;
+            }
+
+            const categoryBadge = item.category === 'tube'
+                ? '<span class="pill pill-tube">Tube</span>'
+                : '<span class="pill pill-tyre">Tyre</span>';
+
+            const costCell = canViewCosts
+                ? `<td>${currency}${Number(item.costPrice || 0).toFixed(2)}</td>`
+                : '';
+
+            const valuationCell = canViewCosts
+                ? `<td class="font-semibold text-slate-800">${currency}${(Number(item.costPrice || 0) * stock).toFixed(2)}</td>`
+                : '';
+
+            return `
+                <tr class="${stock <= minAlert ? 'row-alert' : ''}">
+                    <td>
+                        <span class="code-sku">${escapeHtml(item.sku || 'N/A')}</span>
+                    </td>
+                    <td>
+                        <div class="item-name-cell">
+                            <strong>${escapeHtml(item.name || '')}</strong>
+                            <span class="sub-text">${escapeHtml(item.pattern || '')} ${item.location ? '• ' + escapeHtml(item.location) : ''}</span>
+                        </div>
+                    </td>
+                    <td>
+                        <span class="brand-tag">${escapeHtml(item.brand || 'Generic')}</span>
+                    </td>
+                    <td>
+                        <span class="size-badge">${escapeHtml(item.size || 'N/A')}</span>
+                    </td>
+                    <td>${categoryBadge}</td>
+                    <td>
+                        <span class="vehicle-tag">${escapeHtml(item.vehicleType || 'Universal')}</span>
+                    </td>
+                    <td>
+                        <span class="stock-number font-bold ${stock <= minAlert ? 'text-danger' : 'text-success'}">${stock}</span>
+                        ${stockBadge}
+                    </td>
+                    ${costCell}
+                    <td><strong class="text-primary">${currency}${Number(item.sellingPrice || 0).toFixed(2)}</strong></td>
+                    ${valuationCell}
+                    <td class="action-cell">
+                        <div class="btn-group">
+                            <button class="btn btn-icon btn-sm" title="Add Stock (Stock In)" onclick="AppInventory.openStockInModal('${item.id}')">
+                                📥
+                            </button>
+                            ${canManage ? `
+                                <button class="btn btn-icon btn-sm" title="Edit Item" onclick="AppInventory.openItemModal('${item.id}')">
+                                    ✏️
+                                </button>
+                                <button class="btn btn-icon btn-sm text-danger" title="Delete Item" onclick="AppInventory.deleteItem('${item.id}')">
+                                    🗑️
+                                </button>
+                            ` : ''}
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    /**
+     * Update Inventory Summary Cards (On-hand cost valuation, tyre count, tube count, low stock alert)
+     */
+    function updateInventorySummaryCards() {
+        let totalTyres = 0;
+        let totalTubes = 0;
+        let totalValuation = 0;
+        let lowStockCount = 0;
+
+        currentItems.forEach(item => {
+            const stock = Number(item.stock || 0);
+            const cost = Number(item.costPrice || 0);
+            const min = Number(item.minStockAlert || 5);
+
+            if (item.category === 'tyre') {
+                totalTyres += stock;
+            } else if (item.category === 'tube') {
+                totalTubes += stock;
+            }
+
+            totalValuation += (stock * cost);
+
+            if (stock <= min) {
+                lowStockCount++;
+            }
+        });
+
+        const currency = AppSettings.getCurrency();
+
+        const totalTyresEl = document.getElementById('summaryTotalTyres');
+        if (totalTyresEl) totalTyresEl.textContent = totalTyres.toLocaleString();
+
+        const totalTubesEl = document.getElementById('summaryTotalTubes');
+        if (totalTubesEl) totalTubesEl.textContent = totalTubes.toLocaleString();
+
+        const valuationEl = document.getElementById('summaryStockValuation');
+        if (valuationEl) {
+            if (AppAuth.hasPermission('inventory_costs')) {
+                valuationEl.textContent = `${currency}${totalValuation.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+            } else {
+                valuationEl.textContent = '🔒 Hidden';
+            }
+        }
+
+        const lowStockEl = document.getElementById('summaryLowStockCount');
+        if (lowStockEl) lowStockEl.textContent = lowStockCount;
+
+        // Populate Low Stock Alert list in Dashboard
+        renderLowStockAlerts();
+    }
+
+    /**
+     * Render the low stock items list for the dashboard
+     */
+    function renderLowStockAlerts() {
+        const container = document.getElementById('dashboardLowStockList');
+        if (!container) return;
+
+        const lowItems = currentItems.filter(i => (i.stock || 0) <= (i.minStockAlert || 5));
+
+        if (lowItems.length === 0) {
+            container.innerHTML = `
+                <div class="empty-state-small">
+                    <span class="icon">✅</span>
+                    <p>All tyre and tube stocks are healthy above alert thresholds.</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = lowItems.slice(0, 6).map(item => `
+            <div class="alert-item-row">
+                <div class="alert-info">
+                    <strong>${escapeHtml(item.brand)} - ${escapeHtml(item.size)}</strong>
+                    <span>${escapeHtml(item.name)} (${item.category.toUpperCase()})</span>
+                </div>
+                <div class="alert-status">
+                    <span class="stock-count-alert ${item.stock === 0 ? 'out' : 'low'}">
+                        ${item.stock === 0 ? 'Out of Stock' : `${item.stock} left (Min: ${item.minStockAlert})`}
+                    </span>
+                    <button class="btn btn-sm btn-outline-primary" onclick="AppInventory.openStockInModal('${item.id}')">
+                        + Restock
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    /**
+     * Open Modal to Add or Edit Item
+     */
+    function openItemModal(itemId = null) {
+        if (!AppAuth.hasPermission('inventory_manage')) {
+            AppNotification.toast('Permission Denied', 'Only Admins and Managers can manage inventory items.', 'warning');
+            return;
+        }
+
+        const modal = document.getElementById('itemModal');
+        const form = document.getElementById('itemForm');
+        const title = document.getElementById('itemModalTitle');
+
+        if (!modal || !form) return;
+
+        form.reset();
+
+        if (itemId) {
+            const item = getItemById(itemId);
+            if (!item) return;
+
+            title.textContent = 'Edit Tyre / Tube Item';
+            document.getElementById('itemId').value = item.id;
+            document.getElementById('itemCategory').value = item.category || 'tyre';
+            document.getElementById('itemBrand').value = item.brand || '';
+            document.getElementById('itemName').value = item.name || '';
+            document.getElementById('itemSize').value = item.size || '';
+            document.getElementById('itemPattern').value = item.pattern || '';
+            document.getElementById('itemVehicleType').value = item.vehicleType || 'Car';
+            document.getElementById('itemPlyRating').value = item.plyRating || '';
+            document.getElementById('itemValveType').value = item.valveType || '';
+            document.getElementById('itemCostPrice').value = item.costPrice || 0;
+            document.getElementById('itemSellingPrice').value = item.sellingPrice || 0;
+            document.getElementById('itemStock').value = item.stock || 0;
+            document.getElementById('itemMinAlert').value = item.minStockAlert || 5;
+            document.getElementById('itemSku').value = item.sku || '';
+            document.getElementById('itemLocation').value = item.location || '';
+        } else {
+            title.textContent = 'Add New Tyre / Tube Item';
+            document.getElementById('itemId').value = '';
+            document.getElementById('itemMinAlert').value = '5';
+            document.getElementById('itemStock').value = '10';
+            generateAutoSKU();
+        }
+
+        handleCategoryFieldToggle();
+        modal.classList.add('active');
+    }
+
+    /**
+     * Save Item (Create or Update)
+     */
+    async function handleSaveItem(e) {
+        e.preventDefault();
+
+        const id = document.getElementById('itemId').value;
+        const category = document.getElementById('itemCategory').value;
+        const brand = document.getElementById('itemBrand').value.trim();
+        const name = document.getElementById('itemName').value.trim();
+        const size = document.getElementById('itemSize').value.trim();
+        const pattern = document.getElementById('itemPattern').value.trim();
+        const vehicleType = document.getElementById('itemVehicleType').value;
+        const plyRating = document.getElementById('itemPlyRating').value.trim();
+        const valveType = document.getElementById('itemValveType').value.trim();
+        const costPrice = parseFloat(document.getElementById('itemCostPrice').value) || 0;
+        const sellingPrice = parseFloat(document.getElementById('itemSellingPrice').value) || 0;
+        const stock = parseInt(document.getElementById('itemStock').value, 10) || 0;
+        const minStockAlert = parseInt(document.getElementById('itemMinAlert').value, 10) || 5;
+        const sku = document.getElementById('itemSku').value.trim();
+        const location = document.getElementById('itemLocation').value.trim();
+
+        if (!brand || !name || !size || !sku) {
+            AppNotification.toast('Validation Error', 'Please fill in Brand, Item Name, Size, and SKU.', 'error');
+            return;
+        }
+
+        try {
+            if (id) {
+                // Update
+                const existing = getItemById(id);
+                const updated = {
+                    ...existing,
+                    category,
+                    brand,
+                    name,
+                    size,
+                    pattern,
+                    vehicleType,
+                    plyRating,
+                    valveType,
+                    costPrice,
+                    sellingPrice,
+                    stock,
+                    minStockAlert,
+                    sku,
+                    location,
+                    updatedAt: new Date().toISOString()
+                };
+                await AppDB.update('items', updated);
+                AppNotification.toast('Success', `Updated ${name} (${brand}) successfully.`, 'success');
+            } else {
+                // Create
+                const newItem = {
+                    id: 'item_' + Date.now(),
+                    category,
+                    brand,
+                    name,
+                    size,
+                    pattern,
+                    vehicleType,
+                    plyRating,
+                    valveType,
+                    costPrice,
+                    sellingPrice,
+                    stock,
+                    minStockAlert,
+                    sku,
+                    location,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+                await AppDB.add('items', newItem);
+                AppNotification.toast('Success', `Created new ${category.toUpperCase()}: ${brand} ${size}`, 'success');
+            }
+
+            document.getElementById('itemModal').classList.remove('active');
+            await loadItems();
+            // Refresh POS list and Analytics
+            if (window.AppPOS) AppPOS.loadProducts();
+            if (window.AppAnalytics) AppAnalytics.refreshCharts();
+        } catch (err) {
+            console.error('Error saving item:', err);
+            AppNotification.toast('Error', 'Failed to save item. Make sure SKU is unique.', 'error');
+        }
+    }
+
+    /**
+     * Delete Item
+     */
+    async function deleteItem(id) {
+        if (!AppAuth.hasPermission('inventory_manage')) {
+            AppNotification.toast('Access Denied', 'Only Admins and Managers can delete items.', 'warning');
+            return;
+        }
+
+        const item = getItemById(id);
+        if (!item) return;
+
+        const confirmed = confirm(`Are you sure you want to delete ${item.brand} - ${item.size} (${item.name})?`);
+        if (!confirmed) return;
+
+        try {
+            await AppDB.remove('items', id);
+            AppNotification.toast('Deleted', `Item ${item.name} removed from inventory.`, 'info');
+            await loadItems();
+            if (window.AppPOS) AppPOS.loadProducts();
+            if (window.AppAnalytics) AppAnalytics.refreshCharts();
+        } catch (err) {
+            console.error('Error deleting item:', err);
+            AppNotification.toast('Error', 'Failed to delete item.', 'error');
+        }
+    }
+
+    /**
+     * Open Stock In / Purchase Order Modal
+     */
+    function openStockInModal(preselectedItemId = null) {
+        if (!AppAuth.hasPermission('stock_in')) {
+            AppNotification.toast('Permission Denied', 'Your user role cannot perform Stock In.', 'warning');
+            return;
+        }
+
+        const modal = document.getElementById('stockInModal');
+        const form = document.getElementById('stockInForm');
+        const select = document.getElementById('stockInItemSelect');
+
+        if (!modal || !form || !select) return;
+
+        form.reset();
+
+        // Populate items dropdown with tyres and tubes
+        select.innerHTML = '<option value="">-- Choose Tyre / Tube to Restock --</option>' +
+            currentItems.map(item => `
+                <option value="${item.id}" ${item.id === preselectedItemId ? 'selected' : ''}>
+                    [${item.category.toUpperCase()}] ${escapeHtml(item.brand)} - ${escapeHtml(item.size)} (${escapeHtml(item.name)}) | Current Stock: ${item.stock || 0}
+                </option>
+            `).join('');
+
+        // If preselected, autofill current cost
+        if (preselectedItemId) {
+            const item = getItemById(preselectedItemId);
+            if (item) {
+                document.getElementById('stockInUnitCost').value = item.costPrice || 0;
+            }
+        }
+
+        // Set default date to today
+        document.getElementById('stockInDate').value = new Date().toISOString().substring(0, 10);
+        document.getElementById('stockInQuantity').value = 10;
+
+        // Auto generate Purchase reference
+        document.getElementById('stockInRefNo').value = 'PUR-' + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000);
+
+        select.onchange = () => {
+            const chosen = getItemById(select.value);
+            if (chosen) {
+                document.getElementById('stockInUnitCost').value = chosen.costPrice || 0;
+            }
+        };
+
+        modal.classList.add('active');
+    }
+
+    /**
+     * Process Stock In Form Submission
+     */
+    async function handleStockInSubmit(e) {
+        e.preventDefault();
+
+        const itemId = document.getElementById('stockInItemSelect').value;
+        const quantity = parseInt(document.getElementById('stockInQuantity').value, 10);
+        const unitCost = parseFloat(document.getElementById('stockInUnitCost').value) || 0;
+        const supplier = document.getElementById('stockInSupplier').value.trim() || 'General Supplier';
+        const invoiceRef = document.getElementById('stockInSupplierInvoice').value.trim() || 'N/A';
+        const dateStr = document.getElementById('stockInDate').value || new Date().toISOString();
+        const notes = document.getElementById('stockInNotes').value.trim();
+
+        if (!itemId || isNaN(quantity) || quantity <= 0) {
+            AppNotification.toast('Validation Error', 'Please select an item and enter a valid quantity > 0.', 'error');
+            return;
+        }
+
+        const item = getItemById(itemId);
+        if (!item) return;
+
+        const purchaseRecord = {
+            id: 'pur_' + Date.now(),
+            purchaseNo: document.getElementById('stockInRefNo').value || ('PUR-' + Date.now()),
+            date: new Date(dateStr).toISOString(),
+            supplier: supplier,
+            supplierInvoiceNo: invoiceRef,
+            totalAmount: quantity * unitCost,
+            paymentStatus: 'paid',
+            notes: notes,
+            items: [
+                {
+                    itemId: item.id,
+                    itemName: `${item.brand} ${item.name} (${item.size})`,
+                    brand: item.brand,
+                    size: item.size,
+                    quantity: quantity,
+                    unitCost: unitCost,
+                    totalCost: quantity * unitCost
+                }
+            ]
+        };
+
+        try {
+            await AppDB.processStockIn(purchaseRecord);
+            AppNotification.toast('Stock Added', `Added ${quantity} units of ${item.brand} ${item.size}. Stock updated to ${(item.stock || 0) + quantity}.`, 'success');
+            document.getElementById('stockInModal').classList.remove('active');
+            await loadItems();
+            if (window.AppPOS) AppPOS.loadProducts();
+            if (window.AppAnalytics) AppAnalytics.refreshCharts();
+        } catch (err) {
+            console.error('Error processing Stock In:', err);
+            AppNotification.toast('Error', 'Failed to add stock. Please try again.', 'error');
+        }
+    }
+
+    /**
+     * Utility to escape HTML strings
+     */
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    return {
+        init,
+        loadItems,
+        getItems,
+        getItemById,
+        renderInventoryTable,
+        openItemModal,
+        openStockInModal,
+        deleteItem
+    };
+})();
+
+// Export for module systems or attach to global window
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = AppInventory;
+}

@@ -1,0 +1,24 @@
+{
+  "name": "treadpro-tyre-tube-pos",
+  "version": "1.0.0",
+  "description": "Professional Point of Sale (POS), Inventory & Analytics Management System for Tyre & Tube Retailers with Expandable Repair Services",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "pos",
+    "tyre-shop",
+    "tube-inventory",
+    "automotive-pos",
+    "inventory-management",
+    "stock-analysis",
+    "invoice-generator"
+  ],
+  "author": "Apex Engineering",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.21.2"
+  }
+}

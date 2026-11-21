@@ -1,0 +1,110 @@
+/* ==========================================================================
+   TreadPro POS - Dedicated Print Stylesheet
+   Formats standard A4 invoices and 80mm POS Thermal Receipt Rolls cleanly.
+   ========================================================================== */
+
+@media print {
+    /* Hide everything on page by default */
+    body * {
+        visibility: hidden;
+    }
+
+    /* Reset background and margins */
+    html, body {
+        background: #ffffff !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        color: #000000 !important;
+        font-size: 12pt;
+    }
+
+    /* Only show the invoice container and its contents */
+    #printableInvoice, #printableInvoice * {
+        visibility: visible;
+    }
+
+    #printableInvoice {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 10mm !important;
+        box-shadow: none !important;
+        border: none !important;
+        background: #ffffff !important;
+    }
+
+    /* Hide UI navigation, modals overlay, toasts, and buttons */
+    .app-sidebar,
+    .app-header,
+    .modal-header,
+    .modal-footer,
+    .invoice-format-bar,
+    .toast-container,
+    .btn,
+    .view-actions {
+        display: none !important;
+    }
+
+    /* ==========================================================================
+       A4 Standard Page Print Rules
+       ========================================================================== */
+    @page {
+        size: A4 portrait;
+        margin: 10mm;
+    }
+
+    .a4-invoice-sheet {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        border: none !important;
+    }
+
+    .invoice-items-table {
+        border-collapse: collapse !important;
+        width: 100% !important;
+    }
+
+    .invoice-items-table th {
+        background-color: #000000 !important;
+        color: #ffffff !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .invoice-items-table td, .invoice-items-table th {
+        border: 1px solid #000000 !important;
+    }
+
+    .font-plate {
+        border: 1px solid #000000 !important;
+        color: #000000 !important;
+        background: #f0f0f0 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    /* Avoid page breaking inside items table rows or signatures */
+    tr, .invoice-info-grid, .invoice-bottom-grid, .invoice-signatures-row {
+        page-break-inside: avoid;
+    }
+
+    /* ==========================================================================
+       80mm Thermal Receipt Print Rules
+       ========================================================================== */
+    .thermal-receipt {
+        width: 72mm !important;
+        max-width: 72mm !important;
+        padding: 2mm !important;
+        font-family: monospace !important;
+        font-size: 9pt !important;
+        line-height: 1.2 !important;
+    }
+
+    .thermal-receipt .thermal-divider {
+        font-size: 8pt !important;
+    }
+}

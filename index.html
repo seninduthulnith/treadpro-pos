@@ -1,0 +1,1163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TreadPro POS - Tyre & Tube Management System</title>
+    <!-- Google Fonts Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <!-- Chart.js for Analytics Graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <!-- html2pdf.js for Invoice PDF Download -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- App Stylesheets -->
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/print.css" media="print">
+</head>
+<body>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Main Application Wrapper -->
+    <div id="appWrapper" class="app-layout">
+
+        <!-- ==========================================================================
+             Sidebar Navigation
+             ========================================================================== -->
+        <aside class="app-sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">
+                    <span class="logo-wheel">🛞</span>
+                    <div class="logo-text">
+                        <h2>TreadPro</h2>
+                        <span>TYRE & TUBE POS</span>
+                    </div>
+                </div>
+            </div>
+
+            <nav class="sidebar-menu">
+                <div class="menu-section-label">Operations</div>
+                <a href="#dashboard" class="nav-link active" data-view="dashboard">
+                    <span class="nav-icon">📊</span>
+                    <span>Dashboard & Analytics</span>
+                </a>
+                <a href="#pos" class="nav-link" data-view="pos">
+                    <span class="nav-icon">🛒</span>
+                    <span>Point of Sale (POS)</span>
+                </a>
+                <a href="#inventory" class="nav-link" data-view="inventory">
+                    <span class="nav-icon">🛞</span>
+                    <span>Tyres & Tubes Stock</span>
+                </a>
+                <a href="#purchases" class="nav-link" data-view="purchases" data-permission="stock_in">
+                    <span class="nav-icon">📥</span>
+                    <span>Purchases (Stock In)</span>
+                </a>
+                <a href="#sales" class="nav-link" data-view="sales">
+                    <span class="nav-icon">🧾</span>
+                    <span>Sales & Invoices</span>
+                </a>
+
+                <div class="menu-section-label">Services & Growth</div>
+                <a href="#services" class="nav-link" data-view="services">
+                    <span class="nav-icon">🔧</span>
+                    <span>Repair & Services</span>
+                </a>
+
+                <div class="menu-section-label" data-admin-only>Administration</div>
+                <a href="#users" class="nav-link" data-view="users" data-admin-only>
+                    <span class="nav-icon">👥</span>
+                    <span>User Management</span>
+                </a>
+                <a href="#settings" class="nav-link" data-view="settings">
+                    <span class="nav-icon">⚙️</span>
+                    <span>Settings & Backup</span>
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div class="user-profile-badge">
+                    <div class="user-avatar" id="sidebarAvatar">A</div>
+                    <div class="user-details">
+                        <span class="auth-user-name">Store Admin</span>
+                        <span class="auth-user-role">ADMIN</span>
+                    </div>
+                </div>
+                <button class="btn-logout" id="logoutBtn" title="Log Out">⏻</button>
+            </div>
+        </aside>
+
+        <!-- ==========================================================================
+             Main Workspace Content
+             ========================================================================== -->
+        <main class="app-main">
+
+            <!-- Top Header Bar -->
+            <header class="app-header">
+                <div class="header-left">
+                    <div class="shop-status-pill">
+                        <span class="status-dot"></span>
+                        <span class="app-shop-brand-name">Apex Tyre & Tube Center</span>
+                    </div>
+                    <span class="text-xs text-muted" id="headerLiveDateTime"></span>
+                </div>
+                <div class="header-right">
+                    <button class="btn btn-outline-primary btn-sm" onclick="AppInventory.openStockInModal()">
+                        📥 + Stock In
+                    </button>
+                    <button class="btn btn-primary btn-sm" onclick="AppInventory.openItemModal()">
+                        🛞 + New Tyre / Tube
+                    </button>
+                    <button class="btn btn-emerald btn-sm" onclick="AppRouter.navigate('pos')">
+                        🛒 Open POS
+                    </button>
+                </div>
+            </header>
+
+            <div class="view-container">
+
+                <!-- ==================================================================
+                     VIEW 1: Dashboard & Analytics
+                     ================================================================== -->
+                <section id="view-dashboard" class="view-section active">
+                    <div class="view-header">
+                        <div class="view-title-block">
+                            <h1>Shop Performance & Stock Analytics</h1>
+                            <p>Real-time analytics on most selling tyres/tubes, weekly on-hand stock cost, and revenue trends.</p>
+                        </div>
+                        <div class="view-actions">
+                            <button class="btn btn-outline-secondary btn-sm" onclick="AppAnalytics.refreshCharts()">
+                                🔄 Refresh Data
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- KPI Cards -->
+                    <div class="kpi-grid">
+                        <div class="kpi-card">
+                            <div>
+                                <div class="kpi-label">Today's Sales</div>
+                                <div class="kpi-value text-primary" id="kpiTodaySales">$0.00</div>
+                                <div class="kpi-sub">Total sales billed today</div>
+                            </div>
+                            <div class="kpi-icon-box icon-blue">💰</div>
+                        </div>
+
+                        <div class="kpi-card" data-permission="analytics_costs">
+                            <div>
+                                <div class="kpi-label">Total Gross Profit</div>
+                                <div class="kpi-value text-success" id="kpiGrossProfit">$0.00</div>
+                                <div class="kpi-sub" id="kpiProfitMargin">0% gross margin</div>
+                            </div>
+                            <div class="kpi-icon-box icon-emerald">📈</div>
+                        </div>
+
+                        <div class="kpi-card" data-permission="analytics_costs">
+                            <div>
+                                <div class="kpi-label">On-Hand Stock Valuation</div>
+                                <div class="kpi-value" id="kpiStockCost">$0.00</div>
+                                <div class="kpi-sub">Total capital invested in stock</div>
+                            </div>
+                            <div class="kpi-icon-box icon-purple">🏢</div>
+                        </div>
+
+                        <div class="kpi-card">
+                            <div>
+                                <div class="kpi-label">Total Transactions</div>
+                                <div class="kpi-value" id="kpiTotalOrders">0</div>
+                                <div class="kpi-sub">Customer invoices issued</div>
+                            </div>
+                            <div class="kpi-icon-box icon-amber">🧾</div>
+                        </div>
+                    </div>
+
+                    <!-- Low Stock Alert Banner -->
+                    <div class="dashboard-alert-card">
+                        <div class="alert-header">
+                            <span>⚠️</span>
+                            <h3>Critical Reorder & Low Stock Alerts</h3>
+                        </div>
+                        <div id="dashboardLowStockList">
+                            <!-- Injected dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Primary Charts Grid: Most Selling & Weekly On-Hand Stock Cost -->
+                    <div class="charts-grid-primary">
+                        <!-- Chart 1: Most Selling Tyres & Tubes -->
+                        <div class="chart-card">
+                            <div class="chart-card-header">
+                                <div>
+                                    <h3>Top Selling Tyres & Tubes</h3>
+                                    <span>Ranked by sales performance</span>
+                                </div>
+                                <button class="btn btn-outline-primary btn-sm" id="toggleTopSellingMetric">
+                                    Switch to: Revenue ($)
+                                </button>
+                            </div>
+                            <div class="chart-canvas-wrapper">
+                                <canvas id="chartTopSelling"></canvas>
+                            </div>
+                        </div>
+
+                        <!-- Chart 2: On-Hand Stock Cost (Weekly Trend) -->
+                        <div class="chart-card">
+                            <div class="chart-card-header">
+                                <div>
+                                    <h3>Weekly On-Hand Stock Cost</h3>
+                                    <span>Inventory capital tied up over weeks</span>
+                                </div>
+                                <span class="badge badge-success">Cost Trend</span>
+                            </div>
+                            <div class="chart-canvas-wrapper">
+                                <canvas id="chartStockCostWeekly"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Secondary Charts Grid: Revenue vs Profit & Category Breakdown -->
+                    <div class="charts-grid-secondary">
+                        <div class="chart-card">
+                            <div class="chart-card-header">
+                                <div>
+                                    <h3>Weekly Revenue vs. Gross Profit</h3>
+                                    <span>Comparison of income and net margin</span>
+                                </div>
+                            </div>
+                            <div class="chart-canvas-wrapper">
+                                <canvas id="chartWeeklySalesProfit"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="chart-card">
+                            <div class="chart-card-header">
+                                <div>
+                                    <h3>Sales by Category</h3>
+                                    <span>Tyres, Tubes & Repair Services distribution</span>
+                                </div>
+                            </div>
+                            <div class="chart-canvas-wrapper">
+                                <canvas id="chartCategoryDonut"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==================================================================
+                     VIEW 2: Point of Sale (POS)
+                     ================================================================== -->
+                <section id="view-pos" class="view-section">
+                    <div class="pos-layout">
+
+                        <!-- Left: Product Catalogue -->
+                        <div class="pos-catalogue-panel">
+                            <!-- Search & Barcode Scan -->
+                            <div class="pos-search-bar">
+                                <input type="text" id="posSearchInput" class="form-control" placeholder="🔍 Search tyre/tube brand, size (e.g. 205/55 R16, 90/90-12) or scan barcode...">
+                            </div>
+
+                            <!-- Filter Controls -->
+                            <div class="pos-filter-row">
+                                <div class="pos-cat-tabs">
+                                    <button class="pos-cat-tab active" data-cat="all">All Items</button>
+                                    <button class="pos-cat-tab" data-cat="tyre">Tyres</button>
+                                    <button class="pos-cat-tab" data-cat="tube">Tubes</button>
+                                    <button class="pos-cat-tab" data-cat="service">Services</button>
+                                </div>
+
+                                <div class="pos-dropdown-filters">
+                                    <select id="posBrandFilter">
+                                        <option value="">All Brands</option>
+                                    </select>
+                                    <select id="posSizeFilter">
+                                        <option value="">All Sizes</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Product Cards Grid -->
+                            <div class="pos-product-grid" id="posProductGrid">
+                                <!-- Cards injected dynamically -->
+                            </div>
+                        </div>
+
+                        <!-- Right: Cart & Customer Checkout Panel -->
+                        <div class="pos-cart-panel">
+                            <div class="cart-header">
+                                <h3>
+                                    <span>Active Cart</span>
+                                    <span class="cart-count-badge" id="cartItemCountBadge">0</span>
+                                </h3>
+                                <button class="btn btn-outline-secondary btn-sm" id="clearCartBtn">Clear</button>
+                            </div>
+
+                            <!-- Cart Items -->
+                            <div class="cart-items-scroll">
+                                <div id="posCartEmpty" class="cart-empty-state">
+                                    <span style="font-size: 36px;">🛒</span>
+                                    <strong>Cart is empty</strong>
+                                    <p class="text-xs">Click any tyre, tube or service to add.</p>
+                                </div>
+                                <div id="posCartItemsContainer"></div>
+                            </div>
+
+                            <!-- Customer & Vehicle Registration Details -->
+                            <div class="cart-customer-section">
+                                <div class="customer-section-title">Customer & Vehicle Details</div>
+                                <div class="form-row">
+                                    <div class="form-group" style="margin-bottom: 6px;">
+                                        <input type="text" id="posCustName" class="form-control" placeholder="Customer Name">
+                                    </div>
+                                    <div class="form-group" style="margin-bottom: 6px;">
+                                        <input type="text" id="posCustPhone" class="form-control" placeholder="Mobile / Phone">
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <input type="text" id="posVehicleNo" class="form-control" placeholder="Vehicle Plate (e.g. ABC-1234)">
+                                    </div>
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <input type="text" id="posVehicleModel" class="form-control" placeholder="Model (e.g. Corolla / FZ)">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Financial Totals & Payment -->
+                            <div class="cart-summary-section">
+                                <div class="summary-line">
+                                    <span>Subtotal:</span>
+                                    <strong id="posSubtotal">$0.00</strong>
+                                </div>
+                                <div class="summary-line">
+                                    <span>Discount ($):</span>
+                                    <input type="number" id="posDiscountInput" class="form-control" style="width: 80px; padding: 2px 6px; text-align: right;" value="0" min="0" step="0.5">
+                                </div>
+                                <div class="summary-line">
+                                    <span id="posTaxRateLabel">Tax (5%):</span>
+                                    <span id="posTaxAmount">$0.00</span>
+                                </div>
+                                <div class="summary-line grand">
+                                    <span>Total Payable:</span>
+                                    <span class="text-primary" id="posGrandTotal">$0.00</span>
+                                </div>
+
+                                <!-- Payment Method & Cash Tendered -->
+                                <div class="tendered-group">
+                                    <select id="posPaymentMethod" class="form-control">
+                                        <option value="cash">Cash Payment</option>
+                                        <option value="card">Credit/Debit Card</option>
+                                        <option value="transfer">Bank Transfer / UPI</option>
+                                        <option value="credit">Shop Credit (Due)</option>
+                                    </select>
+                                    <input type="number" id="posAmountTendered" class="form-control" placeholder="Cash Tendered" step="0.5">
+                                </div>
+
+                                <!-- Quick Cash Presets -->
+                                <div class="quick-cash-row">
+                                    <button class="btn-quick-cash" data-amount="exact">Exact</button>
+                                    <button class="btn-quick-cash" data-amount="20">$20</button>
+                                    <button class="btn-quick-cash" data-amount="50">$50</button>
+                                    <button class="btn-quick-cash" data-amount="100">$100</button>
+                                    <button class="btn-quick-cash" data-amount="200">$200</button>
+                                </div>
+
+                                <div class="summary-line" style="margin-bottom: 12px;">
+                                    <span>Change to Return:</span>
+                                    <strong id="posChangeReturn" class="font-mono">$0.00</strong>
+                                </div>
+
+                                <button class="btn btn-emerald btn-lg btn-block" id="posCheckoutBtn">
+                                    💳 Complete Sale & Print Invoice
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==================================================================
+                     VIEW 3: Tyres & Tubes Inventory
+                     ================================================================== -->
+                <section id="view-inventory" class="view-section">
+                    <div class="view-header">
+                        <div class="view-title-block">
+                            <h1>Tyres & Tubes Inventory</h1>
+                            <p>Manage tyre and tube items, brand sizes, cost valuations, and reorder levels.</p>
+                        </div>
+                        <div class="view-actions">
+                            <button class="btn btn-outline-primary" onclick="AppInventory.openStockInModal()">
+                                📥 + Add Stock (Buying)
+                            </button>
+                            <button class="btn btn-primary" onclick="AppInventory.openItemModal()" data-permission="inventory_manage">
+                                + Add New Tyre / Tube
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Summary Chips -->
+                    <div class="kpi-grid" style="margin-bottom: 20px;">
+                        <div class="kpi-card" style="padding: 14px 18px;">
+                            <div>
+                                <div class="kpi-label">Total Tyres In Stock</div>
+                                <div class="kpi-value text-primary" id="summaryTotalTyres">0</div>
+                            </div>
+                        </div>
+                        <div class="kpi-card" style="padding: 14px 18px;">
+                            <div>
+                                <div class="kpi-label">Total Tubes In Stock</div>
+                                <div class="kpi-value" style="color: var(--accent-amber);" id="summaryTotalTubes">0</div>
+                            </div>
+                        </div>
+                        <div class="kpi-card" style="padding: 14px 18px;" data-permission="inventory_costs">
+                            <div>
+                                <div class="kpi-label">Total Stock Valuation (At Cost)</div>
+                                <div class="kpi-value text-success" id="summaryStockValuation">$0.00</div>
+                            </div>
+                        </div>
+                        <div class="kpi-card" style="padding: 14px 18px;">
+                            <div>
+                                <div class="kpi-label">Items Below Reorder Alert</div>
+                                <div class="kpi-value text-danger" id="summaryLowStockCount">0</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Table with Search & Filters -->
+                    <div class="table-card">
+                        <div class="table-toolbar">
+                            <div style="flex: 1; max-width: 320px;">
+                                <input type="text" id="inventorySearchInput" class="form-control" placeholder="🔍 Search brand, size, pattern, SKU...">
+                            </div>
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                <select id="inventoryCategoryFilter" class="form-control" style="width: 140px;">
+                                    <option value="all">All Categories</option>
+                                    <option value="tyre">Tyres Only</option>
+                                    <option value="tube">Tubes Only</option>
+                                </select>
+                                <select id="inventoryVehicleFilter" class="form-control" style="width: 140px;">
+                                    <option value="all">All Vehicles</option>
+                                    <option value="Car">Car</option>
+                                    <option value="Motorcycle">Motorcycle</option>
+                                    <option value="Scooter">Scooter</option>
+                                    <option value="SUV">SUV</option>
+                                    <option value="Truck">Truck</option>
+                                </select>
+                                <select id="inventoryStatusFilter" class="form-control" style="width: 140px;">
+                                    <option value="all">All Stock Status</option>
+                                    <option value="in_stock">In Stock</option>
+                                    <option value="low_stock">Low Stock</option>
+                                    <option value="out_of_stock">Out of Stock</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="app-table">
+                                <thead>
+                                    <tr>
+                                        <th>SKU / Barcode</th>
+                                        <th>Item Description</th>
+                                        <th>Brand</th>
+                                        <th>Size</th>
+                                        <th>Category</th>
+                                        <th>Vehicle</th>
+                                        <th>Stock</th>
+                                        <th data-permission="inventory_costs">Cost Price</th>
+                                        <th>Sell Price</th>
+                                        <th data-permission="inventory_costs">Valuation</th>
+                                        <th class="action-cell">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="inventoryTableBody">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==================================================================
+                     VIEW 4: Purchases (Stock In) History
+                     ================================================================== -->
+                <section id="view-purchases" class="view-section">
+                    <div class="view-header">
+                        <div class="view-title-block">
+                            <h1>Purchases & Stock In Records</h1>
+                            <p>History of tyre and tube stock additions, supplier invoices, and acquisition costs.</p>
+                        </div>
+                        <div class="view-actions">
+                            <button class="btn btn-primary" onclick="AppInventory.openStockInModal()">
+                                📥 + Record Stock In Order
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="table-card">
+                        <div class="table-responsive">
+                            <table class="app-table">
+                                <thead>
+                                    <tr>
+                                        <th>Purchase Ref</th>
+                                        <th>Date</th>
+                                        <th>Supplier / Distributor</th>
+                                        <th>Supplier Bill No.</th>
+                                        <th>Items Restocked</th>
+                                        <th>Total Expenditure</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="purchasesTableBody">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==================================================================
+                     VIEW 5: Sales & Invoices History
+                     ================================================================== -->
+                <section id="view-sales" class="view-section">
+                    <div class="view-header">
+                        <div class="view-title-block">
+                            <h1>Sales & Invoices History</h1>
+                            <p>Complete log of customer tyre/tube sales, vehicle plate records, and invoice reprinting.</p>
+                        </div>
+                    </div>
+
+                    <div class="table-card">
+                        <div class="table-responsive">
+                            <table class="app-table">
+                                <thead>
+                                    <tr>
+                                        <th>Invoice #</th>
+                                        <th>Date & Time</th>
+                                        <th>Customer & Vehicle Plate</th>
+                                        <th>Items Summary</th>
+                                        <th>Payment</th>
+                                        <th>Amount</th>
+                                        <th class="action-cell">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="salesTableBody">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==================================================================
+                     VIEW 6: Repair & Workshop Services (Future Expansion)
+                     ================================================================== -->
+                <section id="view-services" class="view-section">
+                    <div class="view-header">
+                        <div class="view-title-block">
+                            <h1>Repair & Maintenance Services</h1>
+                            <p>Puncture repairs, computerized wheel alignment, balancing, and vulcanizing services.</p>
+                        </div>
+                        <div class="view-actions">
+                            <button class="btn btn-primary" id="openAddServiceModalBtn" data-permission="services_manage">
+                                + Add New Repair Service
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="table-card">
+                        <div class="table-responsive">
+                            <table class="app-table">
+                                <thead>
+                                    <tr>
+                                        <th>Service Name & Description</th>
+                                        <th>Category</th>
+                                        <th>Standard Fee</th>
+                                        <th>Estimated Time</th>
+                                        <th>Status</th>
+                                        <th class="action-cell">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="servicesTableBody">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==================================================================
+                     VIEW 7: User Management (Admin Only)
+                     ================================================================== -->
+                <section id="view-users" class="view-section" data-admin-only>
+                    <div class="view-header">
+                        <div class="view-title-block">
+                            <h1>User & Staff Management</h1>
+                            <p>Create staff accounts, assign roles (Admin, Manager, Cashier), with PBKDF2 password hashing.</p>
+                        </div>
+                        <div class="view-actions">
+                            <button class="btn btn-primary" id="openAddUserModalBtn">
+                                + Add New User Account
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="table-card">
+                        <div class="table-responsive">
+                            <table class="app-table">
+                                <thead>
+                                    <tr>
+                                        <th>Username / ID</th>
+                                        <th>Full Name</th>
+                                        <th>Role Assigned</th>
+                                        <th>Account Status</th>
+                                        <th>Created Date</th>
+                                        <th class="action-cell">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="usersTableBody">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==================================================================
+                     VIEW 8: Settings & Database Backup
+                     ================================================================== -->
+                <section id="view-settings" class="view-section">
+                    <div class="view-header">
+                        <div class="view-title-block">
+                            <h1>Settings & Free Database Storage</h1>
+                            <p>Configure shop branding, tax settings, and manage your unlimited free offline database.</p>
+                        </div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1.4fr 1fr; gap: 24px;">
+
+                        <!-- Shop Settings Form -->
+                        <div class="table-card" style="padding: 24px;">
+                            <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 16px; color: var(--secondary);">
+                                Shop Branding & Invoice Information
+                            </h3>
+                            <form id="settingsForm">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="settingShopName">Shop / Company Name</label>
+                                        <input type="text" id="settingShopName" class="form-control" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="settingTagline">Tagline / Slogan</label>
+                                        <input type="text" id="settingTagline" class="form-control">
+                                    </div>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="settingPhone">Contact Phone Number</label>
+                                        <input type="text" id="settingPhone" class="form-control">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="settingEmail">Official Email</label>
+                                        <input type="email" id="settingEmail" class="form-control">
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="settingAddress">Physical Address / Workshop Location</label>
+                                    <input type="text" id="settingAddress" class="form-control">
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="settingCurrency">Currency Symbol</label>
+                                        <input type="text" id="settingCurrency" class="form-control" style="width: 80px;" value="$">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="settingTaxRate">Sales Tax / GST Rate (%)</label>
+                                        <input type="number" id="settingTaxRate" class="form-control" step="0.1" value="5">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="settingInvoicePrefix">Invoice Prefix</label>
+                                        <input type="text" id="settingInvoicePrefix" class="form-control" value="INV-">
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                        <input type="checkbox" id="settingTaxEnabled" checked>
+                                        <span>Enable Sales Tax calculation on POS checkout</span>
+                                    </label>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="settingFooterNote">Invoice Footer Notice / Warranty Disclaimer</label>
+                                    <textarea id="settingFooterNote" class="form-control" rows="2"></textarea>
+                                </div>
+
+                                <button type="submit" class="btn btn-primary">Save Settings</button>
+                            </form>
+                        </div>
+
+                        <!-- Database Storage & Backup Card -->
+                        <div class="table-card" style="padding: 24px;">
+                            <h3 style="font-size: 16px; font-weight: 700; margin-bottom: 12px; color: var(--secondary);">
+                                💾 Unlimited Free Database Storage
+                            </h3>
+                            <div style="font-size: 13px; color: var(--text-muted); line-height: 1.5; margin-bottom: 16px;">
+                                <p><strong>How your database works:</strong></p>
+                                <ul style="padding-left: 20px; margin-top: 6px; margin-bottom: 12px;">
+                                    <li>Runs on client-side <strong>IndexedDB</strong> with <strong>zero server hosting bills</strong>.</li>
+                                    <li>Supports <strong>unlimited tyres, tubes, sales, and purchases</strong> locally on your machine.</li>
+                                    <li>Works <strong>100% offline</strong> without internet interruption in your shop.</li>
+                                    <li>Easily distributed via <strong>GitHub Pages</strong>.</li>
+                                </ul>
+                            </div>
+
+                            <div style="border-top: 1px solid var(--border-color); padding-top: 16px; margin-bottom: 16px;">
+                                <h4 style="font-size: 13.5px; font-weight: 700; margin-bottom: 8px;">Backup Database</h4>
+                                <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">
+                                    Download a complete JSON snapshot of all inventory, sales, purchases, and user accounts.
+                                </p>
+                                <button class="btn btn-outline-primary btn-sm" onclick="AppRouter.backupDatabase()">
+                                    📥 Download JSON Database Backup
+                                </button>
+                            </div>
+
+                            <div style="border-top: 1px solid var(--border-color); padding-top: 16px;">
+                                <h4 style="font-size: 13.5px; font-weight: 700; margin-bottom: 8px;">Restore Database</h4>
+                                <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">
+                                    Restore store records from an existing .JSON backup file.
+                                </p>
+                                <input type="file" id="dbRestoreFileInput" accept=".json" style="display: none;" onchange="AppRouter.restoreDatabase(event)">
+                                <button class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('dbRestoreFileInput').click()">
+                                    📤 Upload & Restore from JSON
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- ==========================================================================
+         MODALS
+         ========================================================================== -->
+
+    <!-- 1. Add / Edit Tyre & Tube Item Modal -->
+    <div id="itemModal" class="modal-overlay">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-header">
+                <h3 id="itemModalTitle">Add New Tyre / Tube Item</h3>
+                <button class="btn-modal-close" onclick="closeModal('itemModal')">✕</button>
+            </div>
+            <form id="itemForm">
+                <div class="modal-body">
+                    <input type="hidden" id="itemId">
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="itemCategory">Item Category *</label>
+                            <select id="itemCategory" class="form-control" required>
+                                <option value="tyre">Tyre</option>
+                                <option value="tube">Tube</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="itemBrand">Brand Name *</label>
+                            <input type="text" id="itemBrand" class="form-control" placeholder="e.g. Michelin, Bridgestone, MRF, CEAT" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="itemName">Product / Model Name *</label>
+                            <input type="text" id="itemName" class="form-control" placeholder="e.g. Primacy 4, Turanza T005, Zapper C" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="itemSize">Tyre / Tube Size *</label>
+                            <input type="text" id="itemSize" class="form-control" placeholder="e.g. 205/55 R16, 175/65 R14, 90/90-12" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="itemVehicleType">Vehicle Category</label>
+                            <select id="itemVehicleType" class="form-control">
+                                <option value="Car">Passenger Car</option>
+                                <option value="SUV">SUV / 4x4</option>
+                                <option value="Motorcycle">Motorcycle</option>
+                                <option value="Scooter">Scooter</option>
+                                <option value="Truck">Truck / Commercial</option>
+                                <option value="Tractor">Tractor / Agriculture</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="itemPattern">Tread Pattern / Sub-Type</label>
+                            <input type="text" id="itemPattern" class="form-control" placeholder="e.g. Highway Terrain, All Season">
+                        </div>
+                    </div>
+
+                    <!-- Category specific fields -->
+                    <div class="form-row">
+                        <div class="form-group" id="plyRatingGroup">
+                            <label for="itemPlyRating">Tyre Ply / Construction</label>
+                            <input type="text" id="itemPlyRating" class="form-control" placeholder="e.g. Tubeless (91V), Radial 6PR">
+                        </div>
+                        <div class="form-group" id="valveTypeGroup" style="display: none;">
+                            <label for="itemValveType">Tube Valve Specification</label>
+                            <input type="text" id="itemValveType" class="form-control" placeholder="e.g. TR-13 (Straight), TR-87 (90-deg Bent), TR-4">
+                        </div>
+                        <div class="form-group">
+                            <label for="itemLocation">Rack / Shelf Storage Bin</label>
+                            <input type="text" id="itemLocation" class="form-control" placeholder="e.g. Rack A-02">
+                        </div>
+                    </div>
+
+                    <!-- Pricing & Stock -->
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="itemCostPrice">Purchase / Buy Cost Price *</label>
+                            <input type="number" id="itemCostPrice" class="form-control" step="0.01" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="itemSellingPrice">Retail Selling Price *</label>
+                            <input type="number" id="itemSellingPrice" class="form-control" step="0.01" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="itemStock">Initial Quantity On-Hand</label>
+                            <input type="number" id="itemStock" class="form-control" min="0" value="10">
+                        </div>
+                        <div class="form-group">
+                            <label for="itemMinAlert">Min Stock Alert Level</label>
+                            <input type="number" id="itemMinAlert" class="form-control" min="1" value="5">
+                        </div>
+                    </div>
+
+                    <!-- SKU & Barcode -->
+                    <div class="form-row">
+                        <div class="form-group" style="flex: 2;">
+                            <label for="itemSku">SKU / Barcode Code *</label>
+                            <input type="text" id="itemSku" class="form-control font-mono" required>
+                        </div>
+                        <div class="form-group" style="flex: 1; align-self: flex-end;">
+                            <button type="button" class="btn btn-outline-secondary btn-block" id="generateSkuBtn">
+                                ⚡ Auto Generate SKU
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" onclick="closeModal('itemModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Tyre / Tube</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 2. Stock In / Purchase Order Modal -->
+    <div id="stockInModal" class="modal-overlay">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3>📥 Stock In / Purchase Receipt</h3>
+                <button class="btn-modal-close" onclick="closeModal('stockInModal')">✕</button>
+            </div>
+            <form id="stockInForm">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="stockInItemSelect">Select Tyre / Tube to Restock *</label>
+                        <select id="stockInItemSelect" class="form-control" required>
+                            <!-- Injected dynamically -->
+                        </select>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="stockInQuantity">Quantity Received *</label>
+                            <input type="number" id="stockInQuantity" class="form-control" min="1" value="10" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="stockInUnitCost">Unit Buying Cost Price *</label>
+                            <input type="number" id="stockInUnitCost" class="form-control" step="0.01" min="0" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="stockInSupplier">Supplier / Distributor Name</label>
+                            <input type="text" id="stockInSupplier" class="form-control" placeholder="e.g. Apex Rubber Wholesale Ltd">
+                        </div>
+                        <div class="form-group">
+                            <label for="stockInSupplierInvoice">Supplier Bill / Invoice #</label>
+                            <input type="text" id="stockInSupplierInvoice" class="form-control" placeholder="e.g. SUP-8821">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="stockInRefNo">Internal Purchase Order #</label>
+                            <input type="text" id="stockInRefNo" class="form-control font-mono" readonly>
+                        </div>
+                        <div class="form-group">
+                            <label for="stockInDate">Purchase Date</label>
+                            <input type="date" id="stockInDate" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="stockInNotes">Notes / Batch Remarks</label>
+                        <input type="text" id="stockInNotes" class="form-control" placeholder="e.g. Fresh DOT production batch">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" onclick="closeModal('stockInModal')">Cancel</button>
+                    <button type="submit" class="btn btn-emerald">📥 Add Stock to Inventory</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 3. Add User Modal (Admin Only) -->
+    <div id="userModal" class="modal-overlay">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3>👥 Add New User Account</h3>
+                <button class="btn-modal-close" onclick="closeModal('userModal')">✕</button>
+            </div>
+            <form id="userForm">
+                <div class="modal-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="userUsername">Username *</label>
+                            <input type="text" id="userUsername" class="form-control" placeholder="e.g. john_sales" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="userRole">Assigned Role *</label>
+                            <select id="userRole" class="form-control" required>
+                                <option value="cashier">Cashier (POS & Sales only)</option>
+                                <option value="manager">Manager (Inventory & POS)</option>
+                                <option value="admin">Administrator (Full Access)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="userFullName">Staff Full Name *</label>
+                        <input type="text" id="userFullName" class="form-control" placeholder="e.g. Johnathan Doe" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="userPassword">Password (Min 6 chars) *</label>
+                            <input type="password" id="userPassword" class="form-control" required minlength="6">
+                        </div>
+                        <div class="form-group">
+                            <label for="userConfirmPassword">Confirm Password *</label>
+                            <input type="password" id="userConfirmPassword" class="form-control" required minlength="6">
+                        </div>
+                    </div>
+
+                    <div style="font-size: 11.5px; color: var(--text-muted); background: #f8fafc; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+                        🔒 Passwords are cryptographically salted and hashed using <strong>PBKDF2 with SHA-256</strong> (100,000 iterations). Plain passwords are never stored.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" onclick="closeModal('userModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create User Account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 4. Reset User Password Modal -->
+    <div id="resetPasswordModal" class="modal-overlay">
+        <div class="modal-dialog" style="max-width: 440px;">
+            <div class="modal-header">
+                <h3>🔑 Reset Password</h3>
+                <button class="btn-modal-close" onclick="closeModal('resetPasswordModal')">✕</button>
+            </div>
+            <form id="resetPasswordForm">
+                <div class="modal-body">
+                    <input type="hidden" id="resetPasswordUserId">
+                    <p style="font-size: 13px; margin-bottom: 14px;">
+                        Resetting password for: <strong id="resetPasswordTargetUser"></strong>
+                    </p>
+                    <div class="form-group">
+                        <label for="newPasswordInput">New Password *</label>
+                        <input type="password" id="newPasswordInput" class="form-control" required minlength="6">
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmNewPasswordInput">Confirm New Password *</label>
+                        <input type="password" id="confirmNewPasswordInput" class="form-control" required minlength="6">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" onclick="closeModal('resetPasswordModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 5. Add / Edit Repair Service Modal -->
+    <div id="serviceModal" class="modal-overlay">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h3 id="serviceModalTitle">Add New Repair Service</h3>
+                <button class="btn-modal-close" onclick="closeModal('serviceModal')">✕</button>
+            </div>
+            <form id="serviceForm">
+                <div class="modal-body">
+                    <input type="hidden" id="serviceId">
+                    <div class="form-group">
+                        <label for="serviceName">Service Name *</label>
+                        <input type="text" id="serviceName" class="form-control" placeholder="e.g. Vulcanized Puncture Patch" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="serviceCategory">Category</label>
+                            <select id="serviceCategory" class="form-control">
+                                <option value="repair">Tyre/Tube Puncture Repair</option>
+                                <option value="maintenance">Alignment / Balancing</option>
+                                <option value="fitting">Mounting & Fitting</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="servicePrice">Standard Labor Fee ($) *</label>
+                            <input type="number" id="servicePrice" class="form-control" step="0.5" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="serviceDuration">Duration (Mins)</label>
+                            <input type="number" id="serviceDuration" class="form-control" min="5" value="15">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="serviceDescription">Service Description</label>
+                        <input type="text" id="serviceDescription" class="form-control" placeholder="e.g. Includes internal cold mushroom patch and pressure check">
+                    </div>
+
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="serviceActive" checked>
+                            <span>Enable service in POS catalogue</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" onclick="closeModal('serviceModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Service</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 6. Invoice Viewer & Download Modal -->
+    <div id="invoiceModal" class="modal-overlay">
+        <div class="modal-dialog modal-lg" style="max-height: 94vh;">
+            <div class="modal-header">
+                <h3>🧾 Invoice & Customer Receipt</h3>
+                <button class="btn-modal-close" onclick="closeModal('invoiceModal')">✕</button>
+            </div>
+
+            <!-- Format Bar -->
+            <div class="invoice-format-bar">
+                <div class="format-switcher">
+                    <button class="btn-format active" id="btnFormatA4">Standard A4 Sheet</button>
+                    <button class="btn-format" id="btnFormatThermal">80mm Thermal Receipt</button>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-outline-secondary btn-sm" id="invoiceWhatsAppBtn">
+                        💬 WhatsApp
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm" id="invoiceDownloadPdfBtn">
+                        📥 Download PDF
+                    </button>
+                    <button class="btn btn-primary btn-sm" id="invoicePrintBtn">
+                        🖨️ Print
+                    </button>
+                </div>
+            </div>
+
+            <!-- Scrollable Preview -->
+            <div class="invoice-preview-wrapper">
+                <div id="invoiceRenderContainer">
+                    <!-- Invoice content rendered dynamically -->
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" onclick="closeModal('invoiceModal')">Close</button>
+                <button type="button" class="btn btn-emerald" onclick="closeModal('invoiceModal'); AppRouter.navigate('pos');">
+                    + New Sale
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 7. Authentication Login Modal -->
+    <div id="loginModal" class="modal-overlay">
+        <div class="modal-dialog" style="max-width: 420px;">
+            <div class="modal-header">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 24px;">🛞</span>
+                    <div>
+                        <h3 style="line-height: 1.2;">TreadPro POS</h3>
+                        <p style="font-size: 11.5px; color: var(--text-muted);">Sign in to access your shop</p>
+                    </div>
+                </div>
+            </div>
+            <form id="loginForm">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="loginUsername">Username</label>
+                        <input type="text" id="loginUsername" class="form-control" placeholder="Enter username" required value="admin">
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Password</label>
+                        <input type="password" id="loginPassword" class="form-control" placeholder="Enter password" required value="admin123">
+                    </div>
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12px;">
+                            <input type="checkbox" id="loginRemember" checked>
+                            <span>Remember session on this device</span>
+                        </label>
+                    </div>
+
+                    <!-- Quick Demo Credentials Box -->
+                    <div style="background: #f1f5f9; padding: 10px 12px; border-radius: 6px; font-size: 11.5px; margin-top: 10px;">
+                        <div style="font-weight: 700; color: #475569; margin-bottom: 6px;">Quick Demo Sign-in:</div>
+                        <div style="display: flex; gap: 8px;">
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="demoLoginAdmin" style="flex: 1;">
+                                Admin (admin / admin123)
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="demoLoginCashier" style="flex: 1;">
+                                Cashier (cashier / cashier123)
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary btn-block">Sign In to Dashboard</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Application JavaScript Modules -->
+    <script src="js/crypto.js"></script>
+    <script src="js/db.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/inventory.js"></script>
+    <script src="js/pos.js"></script>
+    <script src="js/invoice.js"></script>
+    <script src="js/analytics.js"></script>
+    <script src="js/users.js"></script>
+    <script src="js/services.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

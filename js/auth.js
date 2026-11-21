@@ -156,6 +156,7 @@ const AppAuth = (function () {
     function updateUI() {
         const authStatusEls = document.querySelectorAll('.auth-user-name');
         const authRoleEls = document.querySelectorAll('.auth-user-role');
+        const loginPageEl = document.getElementById('loginPage');
         const loginModalEl = document.getElementById('loginModal');
         const appWrapperEl = document.getElementById('appWrapper');
 
@@ -163,8 +164,13 @@ const AppAuth = (function () {
             authStatusEls.forEach(el => el.textContent = currentUser.fullName || currentUser.username);
             authRoleEls.forEach(el => el.textContent = currentUser.role.toUpperCase());
 
+            // Hide full login screen & modal
+            if (loginPageEl) loginPageEl.style.display = 'none';
             if (loginModalEl) loginModalEl.classList.remove('active');
-            if (appWrapperEl) appWrapperEl.classList.remove('app-blurred');
+            if (appWrapperEl) {
+                appWrapperEl.style.display = 'flex';
+                appWrapperEl.classList.remove('app-blurred');
+            }
 
             // Apply granular element visibility based on permissions
             document.querySelectorAll('[data-permission]').forEach(el => {
@@ -185,9 +191,13 @@ const AppAuth = (function () {
                 }
             });
         } else {
-            // Not logged in -> Show login modal
+            // Not logged in -> Show full login screen, hide main app
+            if (loginPageEl) loginPageEl.style.display = 'flex';
             if (loginModalEl) loginModalEl.classList.add('active');
-            if (appWrapperEl) appWrapperEl.classList.add('app-blurred');
+            if (appWrapperEl) {
+                appWrapperEl.style.display = 'none';
+                appWrapperEl.classList.add('app-blurred');
+            }
         }
     }
 

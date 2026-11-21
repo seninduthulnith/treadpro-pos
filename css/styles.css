@@ -1643,3 +1643,170 @@ body {
         font-size: 20px;
     }
 }
+
+/* ==========================================================================
+   Full Dedicated Login Page & Lightweight Tyre Rolling Animation
+   ========================================================================== */
+.login-page-screen {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+    padding: 24px;
+    overflow-y: auto;
+}
+
+.login-brand-banner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.login-shop-title {
+    font-size: 28px;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -0.5px;
+    margin: 14px 0 6px 0;
+}
+
+.login-shop-tagline {
+    font-size: 13.5px;
+    color: #94a3b8;
+    max-width: 440px;
+}
+
+/* Pure CSS Rolling Tyre Animation (Ultra-lightweight: ~0.5KB, 60fps GPU accelerated) */
+.tyre-animation-track {
+    position: relative;
+    width: 280px;
+    height: 90px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tyre-tread-marks {
+    position: absolute;
+    bottom: 8px;
+    left: 20px;
+    right: 20px;
+    height: 4px;
+    background: repeating-linear-gradient(
+        90deg,
+        #334155,
+        #334155 12px,
+        transparent 12px,
+        transparent 20px
+    );
+    border-radius: 2px;
+    opacity: 0.8;
+}
+
+.rolling-tyre-assembly {
+    position: relative;
+    animation: tyreRollTrack 3.5s ease-in-out infinite alternate;
+}
+
+.tyre-rubber {
+    width: 72px;
+    height: 72px;
+    background: #090d16;
+    border-radius: 50%;
+    position: relative;
+    box-shadow: 
+        0 10px 20px rgba(0, 0, 0, 0.6),
+        inset 0 0 0 6px #1e293b,
+        inset 0 0 0 10px #090d16;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: tyreSpin 2s linear infinite;
+}
+
+/* Tyre Tread pattern teeth */
+.tyre-rubber::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    border: 3px dashed #475569;
+}
+
+.tyre-rim {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #cbd5e1 30%, #64748b 90%);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: inset 0 0 4px rgba(0, 0, 0, 0.4);
+}
+
+.tyre-hub {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #1e293b;
+    border: 2px solid #38bdf8;
+    z-index: 2;
+}
+
+.rim-spoke {
+    position: absolute;
+    width: 38px;
+    height: 3px;
+    background: #475569;
+    border-radius: 2px;
+}
+
+@keyframes tyreSpin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes tyreRollTrack {
+    0% { transform: translateX(-60px); }
+    100% { transform: translateX(60px); }
+}
+
+/* Login Form Card */
+.login-card-container {
+    width: 100%;
+    max-width: 420px;
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 32px 28px;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.login-card-header {
+    text-align: center;
+    margin-bottom: 22px;
+}
+
+.login-card-header h2 {
+    font-size: 20px;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 4px;
+}
+
+.login-card-header p {
+    font-size: 13px;
+    color: #64748b;
+}
+
+.login-actions {
+    margin-top: 18px;
+}
+

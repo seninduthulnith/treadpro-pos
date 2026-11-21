@@ -1169,50 +1169,67 @@
         </div>
     </div>
 
-    <!-- 7. Authentication Login Modal -->
-    <div id="loginModal" class="modal-overlay">
-        <div class="modal-dialog" style="max-width: 420px;">
-            <div class="modal-header">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <span style="font-size: 24px;">🛞</span>
-                    <div>
-                        <h3 style="line-height: 1.2;">TreadPro POS</h3>
-                        <p style="font-size: 11.5px; color: var(--text-muted);">Sign in to access your shop</p>
-                    </div>
-                </div>
-            </div>
-            <form id="loginForm">
-                <div class="modal-body">
-                    <div class="form-group">
-                        <label for="loginUsername">Username</label>
-                        <input type="text" id="loginUsername" class="form-control" placeholder="Enter username" required value="admin">
-                    </div>
-                    <div class="form-group">
-                        <label for="loginPassword">Password</label>
-                        <input type="password" id="loginPassword" class="form-control" placeholder="Enter password" required value="admin123">
-                    </div>
-                    <div class="form-group">
-                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12px;">
-                            <input type="checkbox" id="loginRemember" checked>
-                            <span>Remember session on this device</span>
-                        </label>
-                    </div>
-
-                    <!-- Quick Demo Credentials Box -->
-                    <div style="background: #f1f5f9; padding: 10px 12px; border-radius: 6px; font-size: 11.5px; margin-top: 10px;">
-                        <div style="font-weight: 700; color: #475569; margin-bottom: 6px;">Quick Demo Sign-in:</div>
-                        <div style="display: flex; gap: 8px;">
-                            <button type="button" class="btn btn-sm btn-outline-primary" id="demoLoginAdmin" style="flex: 1;">
-                                Admin (admin / admin123)
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" id="demoLoginCashier" style="flex: 1;">
-                                Cashier (cashier / cashier123)
-                            </button>
+    <!-- Full Dedicated Authentication Page for Tyre & Tube Shop -->
+    <div id="loginPage" class="login-page-screen">
+        <div class="login-brand-banner">
+            <!-- Animated Tyre Animation -->
+            <div class="tyre-animation-track">
+                <div class="tyre-tread-marks"></div>
+                <div class="rolling-tyre-assembly">
+                    <div class="tyre-rubber">
+                        <div class="tyre-rim">
+                            <div class="tyre-hub"></div>
+                            <div class="rim-spoke"></div>
+                            <div class="rim-spoke" style="transform: rotate(45deg);"></div>
+                            <div class="rim-spoke" style="transform: rotate(90deg);"></div>
+                            <div class="rim-spoke" style="transform: rotate(135deg);"></div>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="submit" class="btn btn-primary btn-block">Sign In to Dashboard</button>
+            </div>
+            <h1 class="login-shop-title">TreadPro Tyre & Tube POS</h1>
+            <p class="login-shop-tagline">Professional Retail POS • Stock Management • Profit Analytics</p>
+        </div>
+
+        <div class="login-card-container">
+            <div class="login-card-header">
+                <h2>Staff Sign In</h2>
+                <p>Enter your authorized credentials to open the store workspace</p>
+            </div>
+
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="loginUsername">Username / Staff ID</label>
+                    <input type="text" id="loginUsername" class="form-control" placeholder="e.g. admin" required value="admin" autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Password</label>
+                    <input type="password" id="loginPassword" class="form-control" placeholder="••••••••" required value="admin123" autocomplete="current-password">
+                </div>
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13px; color: #475569;">
+                        <input type="checkbox" id="loginRemember" checked>
+                        <span>Keep signed in on this shop terminal</span>
+                    </label>
+                </div>
+
+                <div class="login-actions">
+                    <button type="submit" class="btn btn-primary btn-block" style="height: 44px; font-size: 15px; font-weight: 700;">
+                        Enter Shop Dashboard →
+                    </button>
+                </div>
+
+                <!-- Quick Switch Credentials Box -->
+                <div style="background: #f8fafc; padding: 12px; border-radius: 8px; font-size: 12px; margin-top: 16px; border: 1px solid var(--border-color);">
+                    <div style="font-weight: 700; color: #475569; margin-bottom: 6px;">Quick Account Switcher:</div>
+                    <div style="display: flex; gap: 8px;">
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="demoLoginAdmin" style="flex: 1;">
+                            Admin (admin / admin123)
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="demoLoginCashier" style="flex: 1;">
+                            Cashier (cashier / cashier123)
+                        </button>
+                    </div>
                 </div>
             </form>
         </div>

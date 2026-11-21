@@ -623,12 +623,19 @@ const AppAnalytics = (function () {
     /**
      * Render the Re-investment & Restock Cash Flow Table
      */
+    /**
+     * Render the Re-investment & Restock Cash Flow Table
+     * Displays:
+     * 1. Weekly Sales Revenue (Actual cash in hand from sales)
+     * 2. Immediate Restock Power (Rolling cash generated from sales ready to reinvest immediately)
+     * 3. Stock Purchases Made (Supplier expenses)
+     * 4. Net Cycle Balance (Overall net difference)
+     */
     function renderReinvestmentTable(weeks, stockCostData) {
         const tbody = document.getElementById('tableWeeklyReinvestmentBody');
         if (!tbody) return;
 
         const currency = AppSettings.getCurrency();
-        let runningCashBalance = 0;
 
         let rowsHtml = '';
         // Iterate newest week first (reverse of weeks array)
@@ -637,28 +644,32 @@ const AppAnalytics = (function () {
             const stockCost = stockCostData[i] || 0;
             const rev = w.salesRevenue || 0;
             const bought = w.purchasesCost || 0;
-            const netCashFlow = rev - bought;
-            runningCashBalance += netCashFlow;
+            const netCycleBalance = rev - bought;
 
-            const netBadgeClass = netCashFlow >= 0 ? 'badge-success' : 'badge-danger';
-            const netPrefix = netCashFlow >= 0 ? '+' : '';
+            const netBadgeClass = netCycleBalance >= 0 ? 'badge-success' : 'badge-danger';
+            const netPrefix = netCycleBalance >= 0 ? '+' : '';
 
             rowsHtml += `
                 <tr>
                     <td><strong>${w.label}</strong> <span style="font-size: 11px; color: var(--text-muted);">(${w.endDateStr})</span></td>
                     <td>${currency}${stockCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    <td style="color: #1e40af; font-weight: 600;">${currency}${rev.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    <td style="color: #92400e; font-weight: 600;">${currency}${bought.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    <td>
-                        <span class="badge ${netBadgeClass}">
-                            ${netPrefix}${currency}${netCashFlow.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </span>
+                    <td style="color: #1e40af; font-weight: 700; font-size: 14px;">
+                        ${currency}${rev.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                     <td>
-                        <strong style="color: ${runningCashBalance >= 0 ? '#059669' : '#dc2626'};">
-                            ${currency}${Math.max(0, runningCashBalance).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        <strong style="color: #059669; font-size: 14px;">
+                            ${currency}${rev.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </strong>
-                        <span style="font-size: 11px; color: var(--text-muted); display: block;">Available to buy stock</span>
+                        <span style="font-size: 11px; color: var(--text-muted); display: block;">Instant cash from sales to buy stock</span>
+                    </td>
+                    <td style="color: #92400e; font-weight: 600;">
+                        ${currency}${bought.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                    <td>
+                        <span class="badge ${netBadgeClass}" style="font-size: 12px; padding: 4px 10px;">
+                            ${netPrefix}${currency}${netCycleBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                        <span style="font-size: 11px; color: var(--text-muted); display: block;">Sales vs purchases</span>
                     </td>
                 </tr>
             `;

@@ -234,7 +234,8 @@ const AppCrypto = (function () {
     };
 })();
 
-// Export for module systems or attach to global window
+// Export for module systems and attach to global window
+window.AppCrypto = AppCrypto;
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = AppCrypto;
 }

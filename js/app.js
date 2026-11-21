@@ -225,9 +225,16 @@ const AppRouter = (function () {
      * View existing sale in the Invoice Modal
      */
     async function viewSaleInvoice(saleId) {
+        if (!saleId) return;
         const sale = await AppDB.getById('sales', saleId);
-        if (sale && window.AppInvoice) {
-            AppInvoice.showInvoice(sale);
+        if (sale) {
+            if (window.AppInvoice) {
+                AppInvoice.showInvoice(sale);
+            } else if (typeof AppInvoice !== 'undefined') {
+                AppInvoice.showInvoice(sale);
+            }
+        } else {
+            AppNotification.toast('Not Found', 'Could not find invoice record.', 'error');
         }
     }
 
@@ -412,6 +419,11 @@ const AppRouter = (function () {
         clearAllStoreData
     };
 })();
+
+// Attach modules to global window
+window.AppSettings = AppSettings;
+window.AppNotification = AppNotification;
+window.AppRouter = AppRouter;
 
 // Global Modal Closer helper
 function closeModal(modalId) {

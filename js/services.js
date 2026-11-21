@@ -251,7 +251,8 @@ const AppServices = (function () {
     };
 })();
 
-// Export for module systems or attach to global window
+// Export for module systems and attach to global window
+window.AppServices = AppServices;
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = AppServices;
 }

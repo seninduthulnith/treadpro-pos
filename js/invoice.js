@@ -53,7 +53,15 @@ const AppInvoice = (function () {
     /**
      * Show Invoice Modal with Sale Record
      */
-    function showInvoice(saleData) {
+    async function showInvoice(saleData) {
+        if (!saleData) return;
+        if (typeof saleData === 'string') {
+            saleData = await AppDB.getById('sales', saleData);
+            if (!saleData) {
+                if (window.AppNotification) AppNotification.toast('Invoice Not Found', 'Could not locate the requested invoice.', 'error');
+                return;
+            }
+        }
         currentInvoiceData = saleData;
         renderInvoice();
         const modal = document.getElementById('invoiceModal');
@@ -362,7 +370,10 @@ const AppInvoice = (function () {
      */
     function printInvoice() {
         if (!currentInvoiceData) return;
-        window.print();
+        renderInvoice();
+        setTimeout(() => {
+            window.print();
+        }, 150);
     }
 
     /**
@@ -372,23 +383,44 @@ const AppInvoice = (function () {
         if (!currentInvoiceData) return;
 
         const invoiceNo = currentInvoiceData.invoiceNo || 'INV-001';
+        renderInvoice();
 
         // Check if html2pdf is available
         if (typeof html2pdf !== 'undefined') {
             const element = document.getElementById('printableInvoice');
+            if (!element) {
+                AppNotification.toast('Print to PDF', 'Select "Save as PDF" in your print destination window.', 'info');
+                window.print();
+                return;
+            }
+
+            AppNotification.toast('Generating PDF', `Preparing ${invoiceNo}.pdf...`, 'info', 2000);
+
             const opt = {
-                margin: currentFormat === 'thermal' ? [5, 5, 5, 5] : [10, 10, 10, 10],
+                margin: currentFormat === 'thermal' ? [4, 4, 4, 4] : [8, 8, 8, 8],
                 filename: `${invoiceNo}.pdf`,
                 image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true },
+                html2canvas: { scale: 2, useCORS: true, logging: false },
                 jsPDF: {
                     unit: 'mm',
-                    format: currentFormat === 'thermal' ? [80, 200] : 'a4',
+                    format: currentFormat === 'thermal' ? [80, 220] : 'a4',
                     orientation: 'portrait'
                 }
             };
-            html2pdf().set(opt).from(element).save();
-            AppNotification.toast('PDF Generated', `Downloaded ${invoiceNo}.pdf successfully.`, 'success');
+
+            try {
+                html2pdf().set(opt).from(element).save().then(() => {
+                    AppNotification.toast('PDF Downloaded', `Saved ${invoiceNo}.pdf successfully.`, 'success');
+                }).catch(err => {
+                    console.warn('html2pdf generation error, using print-to-PDF:', err);
+                    AppNotification.toast('Print to PDF', 'Select "Save as PDF" in the print destination.', 'info');
+                    window.print();
+                });
+            } catch (err) {
+                console.warn('html2pdf exception:', err);
+                AppNotification.toast('Print to PDF', 'Select "Save as PDF" in the print destination.', 'info');
+                window.print();
+            }
         } else {
             // Native fallback: instruct user to save as PDF via print dialog
             AppNotification.toast('Print to PDF', 'Select "Save as PDF" in your print destination window.', 'info');
@@ -444,7 +476,8 @@ const AppInvoice = (function () {
     };
 })();
 
-// Export for module systems or attach to global window
+// Export for module systems and attach to global window
+window.AppInvoice = AppInvoice;
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = AppInvoice;
 }

@@ -60,6 +60,10 @@
                     <span class="nav-icon">🧾</span>
                     <span>Sales & Invoices</span>
                 </a>
+                <a href="#customers" class="nav-link" data-view="customers">
+                    <span class="nav-icon">🚗</span>
+                    <span>Vehicles & Customers</span>
+                </a>
 
                 <div class="menu-section-label" data-admin-only>Services & Growth</div>
                 <a href="#services" class="nav-link" data-view="services" data-admin-only>
@@ -364,21 +368,57 @@
 
                             <!-- Customer & Vehicle Registration Details -->
                             <div class="cart-customer-section">
-                                <div class="customer-section-title">Customer & Vehicle Details</div>
-                                <div class="form-row">
-                                    <div class="form-group" style="margin-bottom: 6px;">
-                                        <input type="text" id="posCustName" class="form-control" placeholder="Customer Name">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                    <div class="customer-section-title" style="margin-bottom: 0;">Customer & Vehicle Details</div>
+                                    <span id="posLoyaltyBadge" class="badge badge-warning" style="display: none; font-size: 11px;">
+                                        ★ Member
+                                    </span>
+                                </div>
+
+                                <!-- Returning Customer Profile Banner in POS -->
+                                <div id="posReturningBanner" style="display: none; background: #e0f2fe; border: 1px solid #bae6fd; border-radius: 6px; padding: 8px 10px; margin-bottom: 8px; font-size: 11.5px;">
+                                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                                        <div>
+                                            <strong id="posLoyaltyPointsText" style="color: #0369a1;">0 Points Available</strong>
+                                            <span style="color: #64748b; display: block; font-size: 11px;" id="posLoyaltyDiscountText">Rs. 0 discount value</span>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-primary" id="btnRedeemLoyalty" style="font-size: 11px; padding: 3px 8px; height: auto;">
+                                            Redeem Points
+                                        </button>
+                                    </div>
+                                    <div style="margin-top: 4px; font-size: 11px; color: #475569;" id="posLastTyresFitted">
+                                        <!-- Last tyres fitted info -->
+                                    </div>
+                                </div>
+
+                                <div class="form-row" style="position: relative;">
+                                    <div class="form-group" style="margin-bottom: 6px; position: relative;">
+                                        <input type="text" id="posVehicleNo" class="form-control font-mono" placeholder="Plate (e.g. ABC-1234)" autocomplete="off">
+                                        <!-- Suggestions dropdown -->
+                                        <div id="posVehicleSuggestions" class="pos-autocomplete-dropdown" style="display: none;"></div>
                                     </div>
                                     <div class="form-group" style="margin-bottom: 6px;">
                                         <input type="text" id="posCustPhone" class="form-control" placeholder="Mobile / Phone">
                                     </div>
                                 </div>
+
+                                <div class="form-row">
+                                    <div class="form-group" style="margin-bottom: 6px;">
+                                        <input type="text" id="posCustName" class="form-control" placeholder="Customer Name">
+                                    </div>
+                                    <div class="form-group" style="margin-bottom: 6px;">
+                                        <input type="text" id="posVehicleModel" class="form-control" placeholder="Model (e.g. Corolla / FZ)">
+                                    </div>
+                                </div>
+
                                 <div class="form-row">
                                     <div class="form-group" style="margin-bottom: 0;">
-                                        <input type="text" id="posVehicleNo" class="form-control" placeholder="Vehicle Plate (e.g. ABC-1234)">
+                                        <input type="number" id="posOdometer" class="form-control" placeholder="Current Odometer (KM)" min="0" step="100">
                                     </div>
-                                    <div class="form-group" style="margin-bottom: 0;">
-                                        <input type="text" id="posVehicleModel" class="form-control" placeholder="Model (e.g. Corolla / FZ)">
+                                    <div class="form-group" style="margin-bottom: 0; display: flex; align-items: center;">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" id="btnPosViewVehicleHistory" style="width: 100%; height: 36px; font-size: 11.5px; display: none;">
+                                            🔍 Past Fitments
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -603,6 +643,38 @@
                                 </tbody>
                             </table>
                         </div>
+                    </div>
+                </section>
+
+                <!-- ==================================================================
+                     VIEW 5B: Vehicles & Customer Loyalty Tracking
+                     ================================================================== -->
+                <section id="view-customers" class="view-section">
+                    <div class="view-header">
+                        <div class="view-title-block">
+                            <h1>Vehicle History & Customer Loyalty</h1>
+                            <p>Track customer vehicle plates, past tyre fitments, service mileage, and reward loyalty points.</p>
+                        </div>
+                        <div class="view-actions" style="display: flex; gap: 10px; align-items: center;">
+                            <span class="badge badge-primary" id="customersTotalCount" style="padding: 6px 12px; font-size: 12px;">0 Registered</span>
+                        </div>
+                    </div>
+
+                    <!-- Search Bar -->
+                    <div style="margin-bottom: 20px;">
+                        <input type="text" id="customerSearchInput" class="form-control" style="max-width: 420px; height: 42px; font-size: 14px;" placeholder="🔍 Search vehicle plate (e.g. ABC-1234), customer name, or phone...">
+                    </div>
+
+                    <!-- Customers Empty State -->
+                    <div id="customersEmptyState" class="cart-empty-state" style="display: none; background: #fff; padding: 48px; border-radius: 12px; border: 1px solid var(--border-color);">
+                        <span style="font-size: 48px;">🚗</span>
+                        <strong style="font-size: 16px; margin: 8px 0 4px 0;">No Vehicle Records Found</strong>
+                        <p class="text-xs text-muted">Vehicle profiles are automatically created and updated whenever sales invoices are billed at POS.</p>
+                    </div>
+
+                    <!-- Customer Cards Grid -->
+                    <div class="customers-grid" id="customersListContainer">
+                        <!-- Cards injected dynamically -->
                     </div>
                 </section>
 
@@ -1192,6 +1264,22 @@
         </div>
     </div>
 
+    <!-- 7. Vehicle & Customer History Modal -->
+    <div id="vehicleHistoryModal" class="modal-overlay">
+        <div class="modal-dialog modal-lg" style="max-height: 94vh;">
+            <div class="modal-header">
+                <h3>🚗 Vehicle Service & Tyre History</h3>
+                <button class="btn-modal-close" onclick="closeModal('vehicleHistoryModal')">✕</button>
+            </div>
+            <div class="modal-body" id="vehicleHistoryContent" style="padding: 24px; overflow-y: auto; max-height: calc(94vh - 120px);">
+                <!-- Vehicle history details injected dynamically -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" onclick="closeModal('vehicleHistoryModal')">Close</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Full Dedicated Authentication Page for Tyre & Tube Shop -->
     <div id="loginPage" class="login-page-screen">
         <div class="login-brand-banner">
@@ -1256,6 +1344,7 @@
     <script src="js/db.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/inventory.js"></script>
+    <script src="js/customers.js"></script>
     <script src="js/pos.js"></script>
     <script src="js/invoice.js"></script>
     <script src="js/analytics.js"></script>

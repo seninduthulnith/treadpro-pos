@@ -146,10 +146,13 @@ const AppRouter = (function () {
             if (window.AppAnalytics) AppAnalytics.refreshCharts();
         } else if (viewName === 'pos') {
             if (window.AppPOS) AppPOS.loadProducts();
+            if (window.AppCustomers) AppCustomers.loadCustomers();
         } else if (viewName === 'inventory') {
             if (window.AppInventory) AppInventory.loadItems();
         } else if (viewName === 'sales') {
             renderSalesHistory();
+        } else if (viewName === 'customers') {
+            if (window.AppCustomers) AppCustomers.loadCustomers();
         } else if (viewName === 'purchases') {
             renderPurchasesHistory();
         } else if (viewName === 'users') {
@@ -463,6 +466,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 4. Initialize Core Modules
         await AppInventory.init();
         await AppPOS.init();
+        if (window.AppCustomers) {
+            await AppCustomers.init();
+            await AppCustomers.loadCustomers();
+        }
         await AppAnalytics.init();
         await AppUsers.init();
         await AppServices.init();

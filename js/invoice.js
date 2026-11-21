@@ -137,6 +137,7 @@ const AppInvoice = (function () {
                         ${sale.customer.phone ? `<div><strong>PHONE:</strong> ${escapeHtml(sale.customer.phone)}</div>` : ''}
                         <div><strong>VEHICLE NO:</strong> ${escapeHtml(sale.customer.vehicleNo || 'N/A')}</div>
                         ${sale.customer.vehicleModel ? `<div><strong>MODEL:</strong> ${escapeHtml(sale.customer.vehicleModel)}</div>` : ''}
+                        ${sale.customer.odometer ? `<div><strong>ODOMETER:</strong> ${Number(sale.customer.odometer).toLocaleString()} km</div>` : ''}
                     </div>
 
                     <div class="thermal-divider">================================</div>
@@ -260,6 +261,12 @@ const AppInvoice = (function () {
                                 <span class="label">Vehicle Model:</span>
                                 <span class="val">${escapeHtml(sale.customer.vehicleModel || 'General Passenger Vehicle')}</span>
                             </div>
+                            ${sale.customer.odometer ? `
+                                <div class="info-row">
+                                    <span class="label">Odometer (KM):</span>
+                                    <span class="val font-bold">${Number(sale.customer.odometer).toLocaleString()} km</span>
+                                </div>
+                            ` : ''}
                             <div class="info-row">
                                 <span class="label">Warranty Status:</span>
                                 <span class="val text-success">Valid Manufacturer Warranty</span>

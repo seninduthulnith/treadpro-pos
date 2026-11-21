@@ -156,6 +156,206 @@ const AppPOS = (function () {
                 calculateChange();
             });
         }
+
+        // Vehicle Plate Autocomplete & Returning Customer Lookup
+        const vehicleInput = document.getElementById('posVehicleNo');
+        const suggestionsBox = document.getElementById('posVehicleSuggestions');
+
+        if (vehicleInput && suggestionsBox) {
+            vehicleInput.addEventListener('input', (e) => {
+                const val = e.target.value.trim();
+                handleVehicleSearch(val);
+            });
+
+            // Close suggestions on outside click
+            document.addEventListener('click', (e) => {
+                if (!vehicleInput.contains(e.target) && !suggestionsBox.contains(e.target)) {
+                    suggestionsBox.style.display = 'none';
+                }
+            });
+        }
+
+        // Redeem Loyalty Points button
+        const btnRedeem = document.getElementById('btnRedeemLoyalty');
+        if (btnRedeem) {
+            btnRedeem.addEventListener('click', applyLoyaltyDiscount);
+        }
+
+        // View Past Fitments button in POS
+        const btnHistory = document.getElementById('btnPosViewVehicleHistory');
+        if (btnHistory) {
+            btnHistory.addEventListener('click', () => {
+                const plate = document.getElementById('posVehicleNo')?.value.trim();
+                if (window.AppCustomers && plate) {
+                    const cust = AppCustomers.getCustomerByPlate(plate);
+                    if (cust) {
+                        AppCustomers.openVehicleHistoryModal(cust.key);
+                    }
+                }
+            });
+        }
+    }
+
+    let activeCustomerProfile = null;
+
+    /**
+     * Handle live vehicle suggestions and returning customer lookup
+     */
+    function handleVehicleSearch(query) {
+        const suggestionsBox = document.getElementById('posVehicleSuggestions');
+        if (!suggestionsBox) return;
+
+        if (!query || query.length < 2 || !window.AppCustomers) {
+            suggestionsBox.style.display = 'none';
+            checkCustomerProfile(query);
+            return;
+        }
+
+        const matches = AppCustomers.searchReturningCustomer(query);
+        if (matches.length === 0) {
+            suggestionsBox.style.display = 'none';
+            checkCustomerProfile(query);
+            return;
+        }
+
+        suggestionsBox.innerHTML = matches.map(m => `
+            <div class="pos-autocomplete-item" onclick="AppPOS.selectReturningCustomer('${m.key}')">
+                <div style="font-weight: 700; font-family: var(--font-mono); color: #0284c7;">
+                    ${escapeHtml(m.vehicleNo || 'NO PLATE')}
+                </div>
+                <div style="font-size: 11.5px; color: #334155;">
+                    <strong>${escapeHtml(m.name)}</strong> • ${escapeHtml(m.vehicleModel || 'Vehicle')}
+                </div>
+                <div style="font-size: 10.5px; color: #059669;">
+                    ★ ${m.tier} Member (${m.loyaltyPoints} Pts) • ${m.totalVisits} Visits
+                </div>
+            </div>
+        `).join('');
+
+        suggestionsBox.style.display = 'block';
+        checkCustomerProfile(query);
+    }
+
+    /**
+     * Select a returning customer from autocomplete
+     */
+    function selectReturningCustomer(customerKey) {
+        if (!window.AppCustomers) return;
+        const matches = AppCustomers.searchReturningCustomer('');
+        const cust = AppCustomers.getCustomerByPlate(customerKey.replace('PLATE_', '')) ||
+                     (window.AppCustomers ? window.AppCustomers.getCustomerByPlate(customerKey) : null);
+
+        const profile = cust || (window.customerList ? window.customerList.find(c => c.key === customerKey) : null);
+        const target = profile || (AppCustomers.getCustomerByPlate ? AppCustomers.getCustomerByPlate(customerKey) : null);
+
+        // Fill inputs
+        const vehicleInput = document.getElementById('posVehicleNo');
+        const nameInput = document.getElementById('posCustName');
+        const phoneInput = document.getElementById('posCustPhone');
+        const modelInput = document.getElementById('posVehicleModel');
+        const suggestionsBox = document.getElementById('posVehicleSuggestions');
+
+        if (suggestionsBox) suggestionsBox.style.display = 'none';
+
+        if (target) {
+            if (vehicleInput && target.vehicleNo) vehicleInput.value = target.vehicleNo;
+            if (nameInput && target.name && target.name !== 'Walk-in Customer') nameInput.value = target.name;
+            if (phoneInput && target.phone) phoneInput.value = target.phone;
+            if (modelInput && target.vehicleModel) modelInput.value = target.vehicleModel;
+            activeCustomerProfile = target;
+            updateCustomerLoyaltyUI(target);
+        }
+    }
+
+    /**
+     * Check if typed vehicle plate matches existing customer
+     */
+    function checkCustomerProfile(plateOrQuery) {
+        if (!plateOrQuery || !window.AppCustomers) {
+            clearCustomerLoyaltyUI();
+            return;
+        }
+
+        const cust = AppCustomers.getCustomerByPlate(plateOrQuery);
+        if (cust) {
+            activeCustomerProfile = cust;
+            updateCustomerLoyaltyUI(cust);
+        } else {
+            clearCustomerLoyaltyUI();
+        }
+    }
+
+    /**
+     * Update POS loyalty banner and history button
+     */
+    function updateCustomerLoyaltyUI(cust) {
+        const banner = document.getElementById('posReturningBanner');
+        const badge = document.getElementById('posLoyaltyBadge');
+        const pointsText = document.getElementById('posLoyaltyPointsText');
+        const discountText = document.getElementById('posLoyaltyDiscountText');
+        const lastTyresEl = document.getElementById('posLastTyresFitted');
+        const historyBtn = document.getElementById('btnPosViewVehicleHistory');
+        const currency = AppSettings.getCurrency();
+
+        if (badge) {
+            badge.textContent = `★ ${cust.tier} Member`;
+            badge.className = `badge ${cust.tierBadge || 'badge-warning'}`;
+            badge.style.display = 'inline-flex';
+        }
+
+        if (banner) {
+            banner.style.display = 'block';
+            if (pointsText) pointsText.textContent = `${cust.loyaltyPoints} Loyalty Points Available`;
+            if (discountText) discountText.textContent = `${currency}${cust.loyaltyPoints} discount value available`;
+
+            if (lastTyresEl) {
+                if (cust.fittedTyres && cust.fittedTyres.length > 0) {
+                    const last = cust.fittedTyres[0];
+                    lastTyresEl.innerHTML = `<strong>Last Fitted:</strong> ${escapeHtml(last.brand)} ${escapeHtml(last.size)} (${new Date(last.date).toLocaleDateString()})`;
+                } else {
+                    lastTyresEl.textContent = 'Returning Customer • First tyre purchase';
+                }
+            }
+        }
+
+        if (historyBtn) historyBtn.style.display = 'block';
+    }
+
+    /**
+     * Clear loyalty banner
+     */
+    function clearCustomerLoyaltyUI() {
+        activeCustomerProfile = null;
+        const banner = document.getElementById('posReturningBanner');
+        const badge = document.getElementById('posLoyaltyBadge');
+        const historyBtn = document.getElementById('btnPosViewVehicleHistory');
+
+        if (banner) banner.style.display = 'none';
+        if (badge) badge.style.display = 'none';
+        if (historyBtn) historyBtn.style.display = 'none';
+    }
+
+    /**
+     * Redeem Loyalty Points into Discount input
+     */
+    function applyLoyaltyDiscount() {
+        if (!activeCustomerProfile || activeCustomerProfile.loyaltyPoints <= 0) {
+            AppNotification.toast('No Points', 'Customer does not have available loyalty points.', 'warning');
+            return;
+        }
+
+        const totals = calculateTotals();
+        const availableDiscount = activeCustomerProfile.loyaltyPoints;
+        // Discount cannot exceed subtotal
+        const discountToApply = Math.min(totals.subtotal, availableDiscount);
+
+        const discountInput = document.getElementById('posDiscountInput');
+        if (discountInput) {
+            discountInput.value = discountToApply;
+            renderCartSummary();
+            calculateChange();
+            AppNotification.toast('Loyalty Redeemed', `Applied ${AppSettings.getCurrency()}${discountToApply} loyalty discount!`, 'success');
+        }
     }
 
     /**
@@ -488,6 +688,7 @@ const AppPOS = (function () {
         const custPhone = document.getElementById('posCustPhone')?.value.trim() || '';
         const vehicleNo = document.getElementById('posVehicleNo')?.value.trim().toUpperCase() || 'N/A';
         const vehicleModel = document.getElementById('posVehicleModel')?.value.trim() || '';
+        const odometerVal = document.getElementById('posOdometer')?.value ? parseFloat(document.getElementById('posOdometer').value) : null;
         const paymentMethod = document.getElementById('posPaymentMethod')?.value || 'cash';
         const tenderedInput = document.getElementById('posAmountTendered');
         const tenderedVal = parseFloat(tenderedInput ? tenderedInput.value : 0) || 0;
@@ -518,7 +719,8 @@ const AppPOS = (function () {
                 name: custName,
                 phone: custPhone,
                 vehicleNo: vehicleNo,
-                vehicleModel: vehicleModel
+                vehicleModel: vehicleModel,
+                odometer: odometerVal
             },
             items: cart.map(c => ({
                 itemId: c.item.id,
@@ -555,10 +757,14 @@ const AppPOS = (function () {
             document.getElementById('posCustPhone').value = '';
             document.getElementById('posVehicleNo').value = '';
             document.getElementById('posVehicleModel').value = '';
+            const odoInput = document.getElementById('posOdometer');
+            if (odoInput) odoInput.value = '';
+            clearCustomerLoyaltyUI();
             clearCart();
 
-            // Refresh products to reflect new stock levels
+            // Refresh products & customers to reflect new stock levels & visit logs
             await loadProducts();
+            if (window.AppCustomers) await AppCustomers.loadCustomers();
             if (window.AppInventory) AppInventory.loadItems();
             if (window.AppAnalytics) AppAnalytics.refreshCharts();
 
@@ -616,7 +822,8 @@ const AppPOS = (function () {
         removeCartItem,
         clearCart,
         resetFilters,
-        handleCheckout
+        handleCheckout,
+        selectReturningCustomer
     };
 })();
 

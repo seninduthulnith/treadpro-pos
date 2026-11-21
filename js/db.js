@@ -211,6 +211,9 @@ const AppDB = (function () {
                             product.stock = Math.max(0, (product.stock || 0) - saleItem.quantity);
                             product.updatedAt = new Date().toISOString();
                             itemsStore.put(product);
+                            if (window.AppFirebase && AppFirebase.isReady()) {
+                                AppFirebase.syncRecord('items', product).catch(() => {});
+                            }
                         }
                     };
                 }
@@ -252,6 +255,9 @@ const AppDB = (function () {
                         }
                         product.updatedAt = new Date().toISOString();
                         itemsStore.put(product);
+                        if (window.AppFirebase && AppFirebase.isReady()) {
+                            AppFirebase.syncRecord('items', product).catch(() => {});
+                        }
                     }
                 };
             });

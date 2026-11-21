@@ -9,7 +9,7 @@ This document explains how **TreadPro POS** handles database storage with **zero
 ### Why IndexedDB is Perfect for Retail Tyre & Tube Shops:
 1. **Unlimited Storage Capacity**:
    Modern web browsers (Chrome, Edge, Safari, Firefox) allocate IndexedDB storage dynamically based on disk space. It easily supports **tens of thousands of items, invoices, and sales transactions (hundreds of megabytes to gigabytes)** without hitting limits.
-2. **$0.00 / Month Cost**:
+2. **Zero Hosting & Database Fees (Free Forever)**:
    There is **no database server to rent, no AWS/Google Cloud bill**, and no subscription fees.
 3. **100% Offline-First Operation**:
    Tyre shops, garages, and fitting bays frequently experience Wi-Fi drops or internet outages. Because IndexedDB runs directly on your device, **sales, stock deductions, and billing continue without interruption** even if your internet is completely offline.

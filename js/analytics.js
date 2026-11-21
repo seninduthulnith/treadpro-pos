@@ -37,7 +37,7 @@ const AppAnalytics = (function () {
         if (metricToggleBtn) {
             metricToggleBtn.addEventListener('click', () => {
                 topSellingMetric = topSellingMetric === 'quantity' ? 'revenue' : 'quantity';
-                metricToggleBtn.textContent = topSellingMetric === 'quantity' ? 'Switch to: Revenue ($)' : 'Switch to: Quantity (Units)';
+                metricToggleBtn.textContent = topSellingMetric === 'quantity' ? 'Switch to: Revenue (Rs.)' : 'Switch to: Quantity (Units)';
                 renderTopSellingChart();
             });
         }

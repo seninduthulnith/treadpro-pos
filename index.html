@@ -140,7 +140,7 @@
                         <div class="kpi-card">
                             <div>
                                 <div class="kpi-label">Today's Sales</div>
-                                <div class="kpi-value text-primary" id="kpiTodaySales">$0.00</div>
+                                <div class="kpi-value text-primary" id="kpiTodaySales">Rs. 0.00</div>
                                 <div class="kpi-sub">Total sales billed today</div>
                             </div>
                             <div class="kpi-icon-box icon-blue">💰</div>
@@ -149,7 +149,7 @@
                         <div class="kpi-card" data-permission="analytics_costs">
                             <div>
                                 <div class="kpi-label">Total Gross Profit</div>
-                                <div class="kpi-value text-success" id="kpiGrossProfit">$0.00</div>
+                                <div class="kpi-value text-success" id="kpiGrossProfit">Rs. 0.00</div>
                                 <div class="kpi-sub" id="kpiProfitMargin">0% gross margin</div>
                             </div>
                             <div class="kpi-icon-box icon-emerald">📈</div>
@@ -158,7 +158,7 @@
                         <div class="kpi-card" data-permission="analytics_costs">
                             <div>
                                 <div class="kpi-label">On-Hand Stock Valuation</div>
-                                <div class="kpi-value" id="kpiStockCost">$0.00</div>
+                                <div class="kpi-value" id="kpiStockCost">Rs. 0.00</div>
                                 <div class="kpi-sub">Total capital invested in stock</div>
                             </div>
                             <div class="kpi-icon-box icon-purple">🏢</div>
@@ -195,7 +195,7 @@
                                     <span>Ranked by sales performance</span>
                                 </div>
                                 <button class="btn btn-outline-primary btn-sm" id="toggleTopSellingMetric">
-                                    Switch to: Revenue ($)
+                                    Switch to: Revenue (Rs.)
                                 </button>
                             </div>
                             <div class="chart-canvas-wrapper">
@@ -329,19 +329,19 @@
                             <div class="cart-summary-section">
                                 <div class="summary-line">
                                     <span>Subtotal:</span>
-                                    <strong id="posSubtotal">$0.00</strong>
+                                    <strong id="posSubtotal">Rs. 0.00</strong>
                                 </div>
                                 <div class="summary-line">
-                                    <span>Discount ($):</span>
-                                    <input type="number" id="posDiscountInput" class="form-control" style="width: 80px; padding: 2px 6px; text-align: right;" value="0" min="0" step="0.5">
+                                    <span>Discount (Rs.):</span>
+                                    <input type="number" id="posDiscountInput" class="form-control" style="width: 80px; padding: 2px 6px; text-align: right;" value="0" min="0" step="5">
                                 </div>
                                 <div class="summary-line">
                                     <span id="posTaxRateLabel">Tax (5%):</span>
-                                    <span id="posTaxAmount">$0.00</span>
+                                    <span id="posTaxAmount">Rs. 0.00</span>
                                 </div>
                                 <div class="summary-line grand">
                                     <span>Total Payable:</span>
-                                    <span class="text-primary" id="posGrandTotal">$0.00</span>
+                                    <span class="text-primary" id="posGrandTotal">Rs. 0.00</span>
                                 </div>
 
                                 <!-- Payment Method & Cash Tendered -->
@@ -352,21 +352,21 @@
                                         <option value="transfer">Bank Transfer / UPI</option>
                                         <option value="credit">Shop Credit (Due)</option>
                                     </select>
-                                    <input type="number" id="posAmountTendered" class="form-control" placeholder="Cash Tendered" step="0.5">
+                                    <input type="number" id="posAmountTendered" class="form-control" placeholder="Cash Tendered" step="10">
                                 </div>
 
-                                <!-- Quick Cash Presets -->
+                                <!-- Quick Cash Presets (Rupees) -->
                                 <div class="quick-cash-row">
                                     <button class="btn-quick-cash" data-amount="exact">Exact</button>
-                                    <button class="btn-quick-cash" data-amount="20">$20</button>
-                                    <button class="btn-quick-cash" data-amount="50">$50</button>
-                                    <button class="btn-quick-cash" data-amount="100">$100</button>
-                                    <button class="btn-quick-cash" data-amount="200">$200</button>
+                                    <button class="btn-quick-cash" data-amount="500">Rs. 500</button>
+                                    <button class="btn-quick-cash" data-amount="1000">Rs. 1000</button>
+                                    <button class="btn-quick-cash" data-amount="2000">Rs. 2000</button>
+                                    <button class="btn-quick-cash" data-amount="5000">Rs. 5000</button>
                                 </div>
 
                                 <div class="summary-line" style="margin-bottom: 12px;">
                                     <span>Change to Return:</span>
-                                    <strong id="posChangeReturn" class="font-mono">$0.00</strong>
+                                    <strong id="posChangeReturn" class="font-mono">Rs. 0.00</strong>
                                 </div>
 
                                 <button class="btn btn-emerald btn-lg btn-block" id="posCheckoutBtn">
@@ -413,7 +413,7 @@
                         <div class="kpi-card" style="padding: 14px 18px;" data-permission="inventory_costs">
                             <div>
                                 <div class="kpi-label">Total Stock Valuation (At Cost)</div>
-                                <div class="kpi-value text-success" id="summaryStockValuation">$0.00</div>
+                                <div class="kpi-value text-success" id="summaryStockValuation">Rs. 0.00</div>
                             </div>
                         </div>
                         <div class="kpi-card" style="padding: 14px 18px;">
@@ -671,7 +671,7 @@
                                 <div class="form-row">
                                     <div class="form-group">
                                         <label for="settingCurrency">Currency Symbol</label>
-                                        <input type="text" id="settingCurrency" class="form-control" style="width: 80px;" value="$">
+                                        <input type="text" id="settingCurrency" class="form-control" style="width: 80px;" value="Rs. ">
                                     </div>
                                     <div class="form-group">
                                         <label for="settingTaxRate">Sales Tax / GST Rate (%)</label>
@@ -732,6 +732,16 @@
                                 <input type="file" id="dbRestoreFileInput" accept=".json" style="display: none;" onchange="AppRouter.restoreDatabase(event)">
                                 <button class="btn btn-outline-secondary btn-sm" onclick="document.getElementById('dbRestoreFileInput').click()">
                                     📤 Upload & Restore from JSON
+                                </button>
+                            </div>
+
+                            <div style="border-top: 1px solid #fee2e2; padding-top: 16px; margin-top: 16px;">
+                                <h4 style="font-size: 13.5px; font-weight: 700; color: #dc2626; margin-bottom: 8px;">Clear Store Data</h4>
+                                <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">
+                                    Wipe all inventory items, sales records, and purchases to start fresh with real data.
+                                </p>
+                                <button class="btn btn-danger btn-sm" onclick="AppRouter.clearAllStoreData()">
+                                    🗑️ Clear All Historical Data &amp; Start Fresh
                                 </button>
                             </div>
                         </div>
@@ -1027,8 +1037,8 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="servicePrice">Standard Labor Fee ($) *</label>
-                            <input type="number" id="servicePrice" class="form-control" step="0.5" min="0" required>
+                            <label for="servicePrice">Standard Labor Fee (Rs.) *</label>
+                            <input type="number" id="servicePrice" class="form-control" step="10" min="0" required>
                         </div>
                         <div class="form-group">
                             <label for="serviceDuration">Duration (Mins)</label>

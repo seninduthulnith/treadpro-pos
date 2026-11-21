@@ -133,7 +133,7 @@ const AppServices = (function () {
         } else {
             title.textContent = 'Add New Repair / Labor Service';
             document.getElementById('serviceId').value = '';
-            document.getElementById('servicePrice').value = 10.00;
+            document.getElementById('servicePrice').value = 100.00;
             document.getElementById('serviceDuration').value = 15;
             document.getElementById('serviceActive').checked = true;
         }

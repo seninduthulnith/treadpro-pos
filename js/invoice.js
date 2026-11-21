@@ -87,7 +87,7 @@ const AppInvoice = (function () {
 
         const sale = currentInvoiceData;
         const settings = AppSettings.getAllSettings();
-        const currency = settings.currency || '$';
+        const currency = settings.currency || 'Rs. ';
 
         const shopName = settings.shopName || 'Apex Tyre & Tube Center';
         const tagline = settings.tagline || 'Automotive Tyres, Tubes & Wheel Service';

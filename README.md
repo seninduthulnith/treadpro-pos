@@ -31,7 +31,7 @@ Built with an offline-first architecture using **CSS3, modern JavaScript (ES6+),
 - **Cart Controls:** Real-time quantity adjustments, price checks, line discounts, and automated sales tax/GST calculation.
 - **Vehicle & Customer Tracking:** Capture customer name, phone number, vehicle plate registration number (e.g., `ABC-1234`), and vehicle make/model for warranty and service records.
 - **Payment Methods:** Support for Cash, Credit/Debit Card, Bank Transfer / UPI, and Shop Credit (Due).
-- **Change Calculator:** Instant cash tendered and change due computation with quick-cash preset buttons ($20, $50, $100, $200, Exact).
+- **Change Calculator:** Instant cash tendered and change due computation with quick-cash preset buttons (Rs. 500, Rs. 1000, Rs. 2000, Rs. 5000, Exact).
 
 ### 4. 🧾 Dual Invoice System (A4 Standard & 80mm Thermal Receipt)
 - **Standard A4 Tax Invoice:** Clean, professional invoice featuring shop branding, tax registration, customer info, vehicle plate number, itemized tyre/tube specifications, subtotal, tax, discounts, signatures, and manufacturer warranty terms.
@@ -42,7 +42,7 @@ Built with an offline-first architecture using **CSS3, modern JavaScript (ES6+),
   - **WhatsApp Share:** Instantly share invoice summaries with customers via WhatsApp.
 
 ### 5. 📊 Analytics & Reporting Dashboard
-- **Most Selling Tyres & Tubes Graph:** Interactive chart ranking top products by volume (units sold) or revenue ($), with distinct color coding for tyres vs. tubes.
+- **Most Selling Tyres & Tubes Graph:** Interactive chart ranking top products by volume (units sold) or revenue (Rs.), with distinct color coding for tyres vs. tubes.
 - **Weekly On-Hand Stock Cost Graph:** Visual trend line tracking total capital tied up in inventory week over week (`sum(stock * costPrice)`).
 - **Weekly Revenue vs. Gross Profit:** Comparative bar chart analyzing sales income against Cost of Goods Sold (COGS) and gross margin percentages.
 - **Category Breakdown:** Donut chart illustrating sales distribution across Tyres, Tubes, and Services.

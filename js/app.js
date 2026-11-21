@@ -24,7 +24,7 @@ const AppSettings = (function () {
     }
 
     function getCurrency() {
-        return get('currency', '$');
+        return get('currency', 'Rs. ');
     }
 
     function getAllSettings() {
@@ -285,7 +285,7 @@ const AppRouter = (function () {
         document.getElementById('settingPhone').value = s.phone || '';
         document.getElementById('settingEmail').value = s.email || '';
         document.getElementById('settingAddress').value = s.address || '';
-        document.getElementById('settingCurrency').value = s.currency || '$';
+        document.getElementById('settingCurrency').value = s.currency || 'Rs. ';
         document.getElementById('settingTaxRate').value = s.taxRate || 5;
         document.getElementById('settingTaxEnabled').checked = s.taxEnabled !== false;
         document.getElementById('settingInvoicePrefix').value = s.invoicePrefix || 'INV-';
@@ -380,12 +380,36 @@ const AppRouter = (function () {
             .replace(/'/g, '&#39;');
     }
 
+    /**
+     * Clear all inventory items, sales records, and purchase orders.
+     */
+    async function clearAllStoreData() {
+        const confirm1 = confirm("WARNING: Are you sure you want to delete ALL inventory items, sales records, and purchases?\n\nThis will clear all data so you can enter your new real data. (User accounts and shop settings will be preserved).");
+        if (!confirm1) return;
+
+        try {
+            await AppDB.clearAllHistoricalData();
+            AppNotification.toast('Data Cleared', 'All inventory items, sales, and purchases have been wiped clean. Ready for new real data.', 'success');
+
+            // Refresh all views
+            if (window.AppInventory) await AppInventory.loadItems();
+            if (window.AppPOS) await AppPOS.loadProducts();
+            if (window.AppAnalytics) await AppAnalytics.refreshCharts();
+            renderSalesHistory();
+            renderPurchasesHistory();
+        } catch (err) {
+            console.error('Failed to clear data:', err);
+            AppNotification.toast('Error', 'Failed to clear data.', 'error');
+        }
+    }
+
     return {
         navigate,
         viewSaleInvoice,
         saveSettings,
         backupDatabase,
-        restoreDatabase
+        restoreDatabase,
+        clearAllStoreData
     };
 })();
 

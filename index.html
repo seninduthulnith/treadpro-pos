@@ -61,8 +61,8 @@
                     <span>Sales & Invoices</span>
                 </a>
 
-                <div class="menu-section-label">Services & Growth</div>
-                <a href="#services" class="nav-link" data-view="services">
+                <div class="menu-section-label" data-admin-only>Services & Growth</div>
+                <a href="#services" class="nav-link" data-view="services" data-admin-only>
                     <span class="nav-icon">🔧</span>
                     <span>Repair & Services</span>
                 </a>
@@ -72,7 +72,7 @@
                     <span class="nav-icon">👥</span>
                     <span>User Management</span>
                 </a>
-                <a href="#settings" class="nav-link" data-view="settings">
+                <a href="#settings" class="nav-link" data-view="settings" data-admin-only>
                     <span class="nav-icon">⚙️</span>
                     <span>Settings & Backup</span>
                 </a>
@@ -607,9 +607,9 @@
                 </section>
 
                 <!-- ==================================================================
-                     VIEW 6: Repair & Workshop Services (Future Expansion)
+                     VIEW 6: Repair & Workshop Services (Admin Only)
                      ================================================================== -->
-                <section id="view-services" class="view-section">
+                <section id="view-services" class="view-section" data-admin-only>
                     <div class="view-header">
                         <div class="view-title-block">
                             <h1>Repair & Maintenance Services</h1>
@@ -681,9 +681,9 @@
                 </section>
 
                 <!-- ==================================================================
-                     VIEW 8: Settings & Database Backup
+                     VIEW 8: Settings & Database Backup (Admin Only)
                      ================================================================== -->
-                <section id="view-settings" class="view-section">
+                <section id="view-settings" class="view-section" data-admin-only>
                     <div class="view-header">
                         <div class="view-title-block">
                             <h1>Settings & Free Database Storage</h1>

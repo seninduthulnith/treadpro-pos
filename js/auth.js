@@ -32,9 +32,7 @@ const AppAuth = (function () {
             'inventory_costs',
             'stock_in',
             'sales_view',
-            'services_manage',
-            'analytics_view',
-            'database_backup'
+            'analytics_view'
         ],
         cashier: [
             'pos_checkout',

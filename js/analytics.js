@@ -687,8 +687,7 @@ const AppAnalytics = (function () {
             const expenses = w.extraExpenses || 0;
             const investments = w.extraInvestments || 0;
 
-            // Immediate Restock Power (Net On-Hand Real Money to restock tyres & tubes)
-            // Sales Revenue + External Injected Capital - Purchases Made - Shop Expenses
+            // Immediate Restock Power (Sales Revenue + Extra Investments - Stock Purchases - Extra Expenses)
             const restockPower = rev + investments - bought - expenses;
 
             const powerBadgeClass = restockPower >= 0 ? 'badge-success' : 'badge-danger';

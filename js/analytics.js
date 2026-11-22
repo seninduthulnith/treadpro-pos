@@ -669,7 +669,7 @@ const AppAnalytics = (function () {
      * 4. Stock Purchases Made (Supplier tyre/tube expenses)
      * 5. Extra Expenses (-) [From Money Management: rent, salary, bills, etc.]
      * 6. Extra Investments (+) [From Money Management: loans, owner capital, etc.]
-     * 7. Immediate Restock Power = Sales Revenue + Extra Investments − Extra Expenses
+     * 7. Immediate Restock Power = Sales Revenue + Extra Investments - Stock Purchases - Extra Expenses
      */
     function renderReinvestmentTable(weeks, stockCostData) {
         const tbody = document.getElementById('tableWeeklyReinvestmentBody');
@@ -687,9 +687,9 @@ const AppAnalytics = (function () {
             const expenses = w.extraExpenses || 0;
             const investments = w.extraInvestments || 0;
 
-            // Immediate Restock Power = Sales Revenue + Extra Investments - Extra Expenses
-            // (Stock Purchases already reflected in On-Hand Stock Valuation — not deducted here)
-            const restockPower = rev + investments - expenses;
+            // Immediate Restock Power (Real Available Cash)
+            // Sales Revenue + Extra Investments - Stock Purchases - Extra Expenses
+            const restockPower = rev + investments - bought - expenses;
 
             const powerBadgeClass = restockPower >= 0 ? 'badge-success' : 'badge-danger';
             const powerPrefix = restockPower >= 0 ? '+' : '';

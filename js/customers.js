@@ -13,6 +13,7 @@ const AppCustomers = (function () {
 
     // Configurable Loyalty & Membership Tier Settings (editable by Manager & Admin)
     let loyaltyRules = {
+        enabled: false,          // Default disabled until manager/admin checks the tick box!
         spendPerPoint: 100,      // Spend Rs. X to earn 1 Point
         pointValue: 1.0,         // 1 Point = Rs. Y discount
         silverMin: 200,          // Silver Tier min points
@@ -37,8 +38,23 @@ const AppCustomers = (function () {
             if (stored && stored.value) {
                 loyaltyRules = { ...loyaltyRules, ...stored.value };
             }
+            syncLoyaltyCheckboxUI();
         } catch (e) {
             console.warn('Could not load custom loyalty rules:', e);
+        }
+    }
+
+    /**
+     * Sync checkbox elements with current loyaltyRules.enabled
+     */
+    function syncLoyaltyCheckboxUI() {
+        const chkPage = document.getElementById('chkEnableLoyaltyProgram');
+        if (chkPage) {
+            chkPage.checked = !!loyaltyRules.enabled;
+        }
+        const chkModal = document.getElementById('modalEnableLoyaltyProgram');
+        if (chkModal) {
+            chkModal.checked = !!loyaltyRules.enabled;
         }
     }
 
@@ -47,12 +63,13 @@ const AppCustomers = (function () {
      */
     async function saveLoyaltyRules(newRules) {
         loyaltyRules = { ...loyaltyRules, ...newRules };
+        syncLoyaltyCheckboxUI();
         await AppDB.update('settings', { key: 'loyaltyRules', value: loyaltyRules });
         if (window.AppFirebase && AppFirebase.isReady()) {
             AppFirebase.syncRecord('settings', { key: 'loyaltyRules', value: loyaltyRules }).catch(() => {});
         }
         await loadCustomers();
-        AppNotification.toast('Settings Saved', 'Loyalty points earning rate and membership tiers updated!', 'success');
+        AppNotification.toast('Settings Saved', 'Loyalty & Tier settings updated successfully!', 'success');
     }
 
     /**
@@ -67,6 +84,20 @@ const AppCustomers = (function () {
             });
         }
 
+        // Checkbox tick toggle right on the Vehicles & Customers page
+        const chkPage = document.getElementById('chkEnableLoyaltyProgram');
+        if (chkPage) {
+            chkPage.addEventListener('change', async (e) => {
+                const isEnabled = e.target.checked;
+                await saveLoyaltyRules({ enabled: isEnabled });
+                AppNotification.toast(
+                    isEnabled ? 'Loyalty Enabled' : 'Loyalty Disabled',
+                    isEnabled ? 'Customer loyalty point earning & tiers are now active.' : 'Loyalty points and tier discounts are paused.',
+                    isEnabled ? 'success' : 'info'
+                );
+            });
+        }
+
         // Open Loyalty Config Modal button
         const btnOpenConfig = document.getElementById('btnOpenLoyaltyConfig');
         if (btnOpenConfig) {
@@ -76,8 +107,9 @@ const AppCustomers = (function () {
         // Loyalty Config Form submit
         const configForm = document.getElementById('loyaltySettingsForm');
         if (configForm) {
-            configForm.addEventListener('submit', (e) => {
+            configForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
+                const enabledInput = document.getElementById('modalEnableLoyaltyProgram');
                 const spendInput = document.getElementById('loyaltySpendPerPoint');
                 const valueInput = document.getElementById('loyaltyRedeemValue');
                 const silverInput = document.getElementById('loyaltySilverMin');
@@ -85,6 +117,7 @@ const AppCustomers = (function () {
                 const platInput = document.getElementById('loyaltyPlatinumMin');
 
                 const newRules = {
+                    enabled: enabledInput ? enabledInput.checked : loyaltyRules.enabled,
                     spendPerPoint: Math.max(1, parseFloat(spendInput.value) || 100),
                     pointValue: Math.max(0.1, parseFloat(valueInput.value) || 1.0),
                     silverMin: Math.max(1, parseInt(silverInput.value, 10) || 200),
@@ -92,7 +125,7 @@ const AppCustomers = (function () {
                     platinumMin: parseInt(platInput.value, 10) || 0
                 };
 
-                saveLoyaltyRules(newRules);
+                await saveLoyaltyRules(newRules);
                 closeModal('loyaltySettingsModal');
             });
         }
@@ -105,6 +138,7 @@ const AppCustomers = (function () {
         const modal = document.getElementById('loyaltySettingsModal');
         if (!modal) return;
 
+        syncLoyaltyCheckboxUI();
         const spendInput = document.getElementById('loyaltySpendPerPoint');
         const valueInput = document.getElementById('loyaltyRedeemValue');
         const silverInput = document.getElementById('loyaltySilverMin');
@@ -299,12 +333,18 @@ const AppCustomers = (function () {
                             <div class="customer-sub">${escapeHtml(modelDisplay)} ${c.phone ? '• 📞 ' + escapeHtml(c.phone) : ''}</div>
                         </div>
                         <div style="text-align: right;">
-                            <span class="badge ${c.tierBadge}" style="font-size: 11px; padding: 4px 8px;">
-                                ★ ${c.tier} Member
-                            </span>
-                            <div style="font-size: 12px; font-weight: 700; color: #0284c7; margin-top: 4px;">
-                                ${c.loyaltyPoints} Points
-                            </div>
+                            ${loyaltyRules.enabled ? `
+                                <span class="badge ${c.tierBadge}" style="font-size: 11px; padding: 4px 8px;">
+                                    ★ ${c.tier} Member
+                                </span>
+                                <div style="font-size: 12px; font-weight: 700; color: #0284c7; margin-top: 4px;">
+                                    ${c.loyaltyPoints} Points
+                                </div>
+                            ` : `
+                                <span class="badge badge-secondary" style="font-size: 10px; padding: 3px 6px; color: #64748b; background: #f1f5f9;">
+                                    Loyalty Disabled
+                                </span>
+                            `}
                         </div>
                     </div>
 
@@ -410,12 +450,18 @@ const AppCustomers = (function () {
                         </p>
                     </div>
                     <div style="text-align: right;">
-                        <span class="badge ${c.tierBadge}" style="font-size: 13px; padding: 6px 12px;">
-                            ★ ${c.tier} Member
-                        </span>
-                        <div style="font-size: 15px; font-weight: 800; color: #0284c7; margin-top: 6px;">
-                            ${c.loyaltyPoints} Points (${currency}${(c.discountValue || c.loyaltyPoints).toFixed(2)} Discount)
-                        </div>
+                        ${loyaltyRules.enabled ? `
+                            <span class="badge ${c.tierBadge}" style="font-size: 13px; padding: 6px 12px;">
+                                ★ ${c.tier} Member
+                            </span>
+                            <div style="font-size: 15px; font-weight: 800; color: #0284c7; margin-top: 6px;">
+                                ${c.loyaltyPoints} Points (${currency}${(c.discountValue || c.loyaltyPoints).toFixed(2)} Discount)
+                            </div>
+                        ` : `
+                            <span class="badge badge-secondary" style="font-size: 11px; padding: 4px 8px; color: #64748b; background: #f1f5f9;">
+                                Loyalty Program Disabled
+                            </span>
+                        `}
                     </div>
                 </div>
 
@@ -516,6 +562,7 @@ const AppCustomers = (function () {
         getCustomerByPlate,
         openVehicleHistoryModal,
         openLoyaltyConfigModal,
+        isLoyaltyEnabled: () => !!loyaltyRules.enabled,
         getLoyaltyRules: () => ({ ...loyaltyRules })
     };
 })();

@@ -560,13 +560,15 @@ const AppAnalytics = (function () {
             stockCostData[i] = Math.round(runningStockVal);
         }
 
-        // Calculate Stock Cost + Cumulative Revenue (Total Business Asset Pool)
+        // Calculate Stock Cost + Cumulative Cash Pool (Total Business Asset Pool)
+        // Taking into account sales revenue, extra investments (+), and extra expenses (-)
         const totalValueData = new Array(6);
-        let cumRevenue = 0;
+        let cumNetCash = 0;
         for (let i = 0; i < 6; i++) {
-            cumRevenue += weeks[i].salesRevenue;
-            // Value is On-Hand Stock Cost + Revenue generated up to that week
-            totalValueData[i] = Math.round(stockCostData[i] + cumRevenue);
+            const netWeeklyCash = (weeks[i].salesRevenue || 0) + (weeks[i].extraInvestments || 0) - (weeks[i].extraExpenses || 0);
+            cumNetCash += netWeeklyCash;
+            // Total Business Asset Pool is On-Hand Stock Cost plus Net Rolling Cash Pool
+            totalValueData[i] = Math.round(Math.max(0, stockCostData[i] + cumNetCash));
         }
 
         const labels = weeks.map(w => w.label);
@@ -606,7 +608,7 @@ const AppAnalytics = (function () {
                             pointHoverRadius: 7
                         },
                         {
-                            label: `On-Hand Stock + Revenue Valuation (${currency})`,
+                            label: `Total Business Asset Pool (Stock + Net Cash) (${currency})`,
                             data: totalValueData,
                             borderColor: '#3b82f6',
                             borderWidth: 3,
@@ -694,31 +696,34 @@ const AppAnalytics = (function () {
 
             rowsHtml += `
                 <tr>
-                    <td><strong>${w.label}</strong> <span style="font-size: 11px; color: var(--text-muted);">(${w.endDateStr})</span></td>
+                    <td>
+                        <strong>${w.label}</strong>
+                        <div style="font-size: 10px; color: var(--text-muted);">${w.endDateStr}</div>
+                    </td>
                     <td>${currency}${stockCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    <td style="color: #1e40af; font-weight: 700; font-size: 14px;">
+                    <td style="color: #1e40af; font-weight: 700;">
                         ${currency}${rev.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                     <td style="color: #92400e; font-weight: 600;">
                         ${currency}${bought.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                     <td>
-                        <strong style="color: #dc2626; font-size: 13px;">
+                        <strong style="color: #dc2626;">
                             ${expenses > 0 ? '-' : ''}${currency}${expenses.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </strong>
-                        <span style="font-size: 10px; color: var(--text-muted); display: block;">Rent, salary, overheads</span>
+                        <div style="font-size: 9.5px; color: var(--text-muted);">Rent, bills, wages</div>
                     </td>
                     <td>
-                        <strong style="color: #059669; font-size: 13px;">
+                        <strong style="color: #059669;">
                             ${investments > 0 ? '+' : ''}${currency}${investments.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </strong>
-                        <span style="font-size: 10px; color: var(--text-muted); display: block;">Loans, owner capital</span>
+                        <div style="font-size: 9.5px; color: var(--text-muted);">Loans, capital</div>
                     </td>
                     <td>
-                        <strong style="color: ${restockPower >= 0 ? '#059669' : '#dc2626'}; font-size: 15px; font-weight: 800;">
+                        <strong style="color: ${restockPower >= 0 ? '#059669' : '#dc2626'}; font-size: 14px; font-weight: 800;">
                             ${powerPrefix}${currency}${restockPower.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </strong>
-                        <span style="font-size: 10px; color: var(--text-muted); display: block;">Net cash available to buy stock</span>
+                        <div style="font-size: 9.5px; color: var(--text-muted);">Net cash for stock</div>
                     </td>
                 </tr>
             `;
@@ -728,7 +733,7 @@ const AppAnalytics = (function () {
     }
 
     /**
-     * CHART 3: Weekly Revenue vs Gross Profit (Thursday cycle)
+     * CHART 3: Weekly Revenue, Expenses, Investments & Net Profit (Thursday cycle)
      */
     function renderSalesProfitChart() {
         const canvas = document.getElementById('chartWeeklySalesProfit');
@@ -751,9 +756,30 @@ const AppAnalytics = (function () {
             }
         });
 
+        // Aggregate extra expenses for Thursday weeks
+        currentExpenses.forEach(e => {
+            const t = new Date(e.date || e.createdAt).getTime();
+            const w = weeks.find(wk => t >= wk.startTime && t <= wk.endTime);
+            if (w) {
+                w.extraExpenses += Number(e.amount || 0);
+            }
+        });
+
+        // Aggregate extra investments for Thursday weeks
+        currentInvestments.forEach(inv => {
+            const t = new Date(inv.date || inv.createdAt).getTime();
+            const w = weeks.find(wk => t >= wk.startTime && t <= wk.endTime);
+            if (w) {
+                w.extraInvestments += Number(inv.amount || 0);
+            }
+        });
+
         const labels = weeks.map(w => w.label);
         const revenueData = weeks.map(w => w.salesRevenue);
-        const profitData = weeks.map(w => Math.max(0, w.salesRevenue - w.salesCost));
+        const expensesData = weeks.map(w => w.extraExpenses);
+        const investmentsData = weeks.map(w => w.extraInvestments);
+        // Net Operating Profit = Revenue - COGS - Extra Expenses
+        const netProfitData = weeks.map(w => Math.round(w.salesRevenue - w.salesCost - w.extraExpenses));
 
         if (window.Chart) {
             if (salesProfitChart) salesProfitChart.destroy();
@@ -768,13 +794,25 @@ const AppAnalytics = (function () {
                             label: 'Total Revenue',
                             data: revenueData,
                             backgroundColor: 'rgba(59, 130, 246, 0.85)',
-                            borderRadius: 5
+                            borderRadius: 4
                         },
                         {
-                            label: 'Gross Profit',
-                            data: profitData,
+                            label: 'Extra Expenses (-)',
+                            data: expensesData,
+                            backgroundColor: 'rgba(239, 68, 68, 0.85)',
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Extra Invest (+)',
+                            data: investmentsData,
+                            backgroundColor: 'rgba(139, 92, 246, 0.85)',
+                            borderRadius: 4
+                        },
+                        {
+                            label: 'Net Profit',
+                            data: netProfitData,
                             backgroundColor: 'rgba(16, 185, 129, 0.85)',
-                            borderRadius: 5
+                            borderRadius: 4
                         }
                     ]
                 },

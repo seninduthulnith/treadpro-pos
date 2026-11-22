@@ -13,6 +13,8 @@ const AppMoney = (function () {
     let allInvestments = [];
     let currentFilterTab = 'all'; // 'all', 'expenses', 'investments'
     let searchQuery = '';
+    let filterStartDate = null; // YYYY-MM-DD or null
+    let filterEndDate = null;   // YYYY-MM-DD or null
 
     /**
      * Initialize Money Management Module
@@ -46,6 +48,17 @@ const AppMoney = (function () {
             });
         }
 
+        // Date Range Filter buttons
+        const btnApply = document.getElementById('btnApplyMoneyFilter');
+        if (btnApply) {
+            btnApply.addEventListener('click', applyDateFilter);
+        }
+
+        const btnReset = document.getElementById('btnResetMoneyFilter');
+        if (btnReset) {
+            btnReset.addEventListener('click', resetDateFilter);
+        }
+
         // Expense Form submission
         const formExpense = document.getElementById('formExpenseEntry');
         if (formExpense) {
@@ -57,6 +70,79 @@ const AppMoney = (function () {
         if (formInvestment) {
             formInvestment.addEventListener('submit', handleSaveInvestment);
         }
+    }
+
+    /**
+     * Apply date range filter
+     */
+    function applyDateFilter() {
+        const startInput = document.getElementById('moneyStartDate');
+        const endInput = document.getElementById('moneyEndDate');
+        const sVal = startInput ? startInput.value : '';
+        const eVal = endInput ? endInput.value : '';
+
+        if (!sVal && !eVal) {
+            filterStartDate = null;
+            filterEndDate = null;
+        } else {
+            filterStartDate = sVal || null;
+            filterEndDate = eVal || null;
+        }
+
+        updateSummaryCards();
+        renderLedgerTable();
+
+        const statusEl = document.getElementById('moneyFilterStatusText');
+        if (statusEl) {
+            if (filterStartDate || filterEndDate) {
+                statusEl.textContent = `Filtered: ${filterStartDate || 'Beginning'} to ${filterEndDate || 'Now'}`;
+                statusEl.style.color = '#2563eb';
+            } else {
+                statusEl.textContent = 'Showing All Time Records';
+                statusEl.style.color = '#64748b';
+            }
+        }
+
+        if (window.AppNotification) {
+            AppNotification.toast('Filtered', `Money transactions filtered: ${filterStartDate || 'Beginning'} to ${filterEndDate || 'Now'}`, 'info');
+        }
+    }
+
+    /**
+     * Reset date range filter
+     */
+    function resetDateFilter() {
+        const startInput = document.getElementById('moneyStartDate');
+        const endInput = document.getElementById('moneyEndDate');
+        if (startInput) startInput.value = '';
+        if (endInput) endInput.value = '';
+
+        filterStartDate = null;
+        filterEndDate = null;
+
+        const statusEl = document.getElementById('moneyFilterStatusText');
+        if (statusEl) {
+            statusEl.textContent = 'Showing All Time Records';
+            statusEl.style.color = '#64748b';
+        }
+
+        updateSummaryCards();
+        renderLedgerTable();
+
+        if (window.AppNotification) {
+            AppNotification.toast('Reset', 'Money records reset to all time.', 'info');
+        }
+    }
+
+    /**
+     * Helper to test if date string falls within active date filter
+     */
+    function isWithinDateFilter(dateStr) {
+        if (!filterStartDate && !filterEndDate) return true;
+        const startTs = filterStartDate ? new Date(filterStartDate + 'T00:00:00').getTime() : 0;
+        const endTs = filterEndDate ? new Date(filterEndDate + 'T23:59:59.999').getTime() : Infinity;
+        const t = new Date(dateStr).getTime();
+        return t >= startTs && t <= endTs;
     }
 
     /**
@@ -79,48 +165,42 @@ const AppMoney = (function () {
     }
 
     /**
-     * Update top Summary Cards
+     * Update top Summary Cards according to active Date Range
      */
     function updateSummaryCards() {
         const currency = AppSettings.getCurrency();
 
         let totalExpenses = 0;
         let totalInvestments = 0;
-
-        const now = new Date();
-        const currentYearMonth = now.toISOString().substring(0, 7); // YYYY-MM
-        let monthExpenses = 0;
-        let monthInvestments = 0;
+        let filteredExpCount = 0;
+        let filteredInvCount = 0;
 
         allExpenses.forEach(exp => {
-            const amt = Number(exp.amount || 0);
-            totalExpenses += amt;
-            const expDate = (exp.date || '').substring(0, 7);
-            if (expDate === currentYearMonth) {
-                monthExpenses += amt;
+            const expDate = exp.date || exp.createdAt;
+            if (isWithinDateFilter(expDate)) {
+                totalExpenses += Number(exp.amount || 0);
+                filteredExpCount++;
             }
         });
 
         allInvestments.forEach(inv => {
-            const amt = Number(inv.amount || 0);
-            totalInvestments += amt;
-            const invDate = (inv.date || '').substring(0, 7);
-            if (invDate === currentYearMonth) {
-                monthInvestments += amt;
+            const invDate = inv.date || inv.createdAt;
+            if (isWithinDateFilter(invDate)) {
+                totalInvestments += Number(inv.amount || 0);
+                filteredInvCount++;
             }
         });
 
         const netImpact = totalInvestments - totalExpenses;
-        const monthNetImpact = monthInvestments - monthExpenses;
 
         const totalExpEl = document.getElementById('moneyTotalExpenses');
         if (totalExpEl) {
             totalExpEl.textContent = `${currency}${totalExpenses.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
         }
 
-        const monthExpEl = document.getElementById('moneyMonthExpenses');
-        if (monthExpEl) {
-            monthExpEl.textContent = `This Month: ${currency}${monthExpenses.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        const expCountEl = document.getElementById('moneyExpCount');
+        if (expCountEl) {
+            expCountEl.textContent = `${filteredExpCount} recorded expense${filteredExpCount === 1 ? '' : 's'}`;
         }
 
         const totalInvEl = document.getElementById('moneyTotalInvestments');
@@ -128,9 +208,9 @@ const AppMoney = (function () {
             totalInvEl.textContent = `${currency}${totalInvestments.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
         }
 
-        const monthInvEl = document.getElementById('moneyMonthInvestments');
-        if (monthInvEl) {
-            monthInvEl.textContent = `This Month: ${currency}${monthInvestments.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        const invCountEl = document.getElementById('moneyInvCount');
+        if (invCountEl) {
+            invCountEl.textContent = `${filteredInvCount} recorded investment${filteredInvCount === 1 ? '' : 's'}`;
         }
 
         const netEl = document.getElementById('moneyNetImpact');
@@ -140,10 +220,9 @@ const AppMoney = (function () {
             netEl.style.color = netImpact >= 0 ? '#059669' : '#dc2626';
         }
 
-        const monthNetEl = document.getElementById('moneyMonthNetImpact');
-        if (monthNetEl) {
-            const prefix = monthNetImpact >= 0 ? '+' : '';
-            monthNetEl.textContent = `This Month: ${prefix}${currency}${monthNetImpact.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        const netCountEl = document.getElementById('moneyNetCount');
+        if (netCountEl) {
+            netCountEl.textContent = filterStartDate || filterEndDate ? 'Net balance for selected period' : 'Net balance across all time';
         }
     }
 
@@ -193,6 +272,11 @@ const AppMoney = (function () {
 
         // Sort descending by date
         combined.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        // Filter by date range
+        if (filterStartDate || filterEndDate) {
+            combined = combined.filter(item => isWithinDateFilter(item.date));
+        }
 
         // Filter by search query
         if (searchQuery) {

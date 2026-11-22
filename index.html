@@ -269,13 +269,13 @@
                             <table class="app-table" id="tableWeeklyReinvestment">
                                 <thead>
                                     <tr>
-                                        <th>Week (Thursday Ending)</th>
-                                        <th>On-Hand Stock Valuation</th>
-                                        <th>Weekly Sales Revenue (Cash In)</th>
-                                        <th>Stock Purchases Made</th>
-                                        <th>Extra Expenses (-)</th>
-                                        <th>Extra Investments (+)</th>
-                                        <th>Immediate Restock Power (Net Cash to Buy Stock)</th>
+                                        <th style="min-width: 105px;"><strong>Week Ending</strong><br><span style="font-size: 10px; color: #64748b;">(Thursday)</span></th>
+                                        <th style="min-width: 90px;"><strong>Stock Cost</strong><br><span style="font-size: 10px; color: #64748b;">(On-Hand)</span></th>
+                                        <th style="min-width: 95px;"><strong>Sales Revenue</strong><br><span style="font-size: 10px; color: #1e40af;">(Cash In)</span></th>
+                                        <th style="min-width: 90px;"><strong>Purchases</strong><br><span style="font-size: 10px; color: #92400e;">(Stock In)</span></th>
+                                        <th style="min-width: 95px;"><strong>Extra Expenses</strong><br><span style="font-size: 10px; color: #dc2626;">(-) Overheads</span></th>
+                                        <th style="min-width: 95px;"><strong>Extra Invest</strong><br><span style="font-size: 10px; color: #059669;">(+) Capital</span></th>
+                                        <th style="min-width: 120px;"><strong>Restock Power</strong><br><span style="font-size: 10px; color: #059669;">(Net Available Cash)</span></th>
                                     </tr>
                                 </thead>
                                 <tbody id="tableWeeklyReinvestmentBody">
@@ -290,8 +290,8 @@
                         <div class="chart-card">
                             <div class="chart-card-header">
                                 <div>
-                                    <h3>Weekly Revenue vs. Gross Profit</h3>
-                                    <span>Comparison of income and net margin (Thursday ending)</span>
+                                    <h3>Weekly Cash Flow & Profit Breakdown</h3>
+                                    <span>Revenue, overhead expenses, capital investments, and net profit (Thursday ending)</span>
                                 </div>
                             </div>
                             <div class="chart-canvas-wrapper">
@@ -660,8 +660,12 @@
                             <h1>Vehicle History & Customer Loyalty</h1>
                             <p>Track customer vehicle plates, past tyre fitments, service mileage, and reward loyalty points.</p>
                         </div>
-                        <div class="view-actions" style="display: flex; gap: 10px; align-items: center;">
+                        <div class="view-actions" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
                             <span class="badge badge-primary" id="customersTotalCount" style="padding: 6px 12px; font-size: 12px;">0 Registered</span>
+                            <label style="display: inline-flex; align-items: center; gap: 8px; background: #ffffff; border: 1px solid var(--border-color); padding: 5px 12px; border-radius: 6px; cursor: pointer; font-size: 12.5px; font-weight: 600;" data-permission="loyalty_manage" title="Tick to enable loyalty points & customer tier rewards">
+                                <input type="checkbox" id="chkEnableLoyaltyProgram" style="width: 16px; height: 16px; cursor: pointer;">
+                                <span>Enable Loyalty & Tiers</span>
+                            </label>
                             <button class="btn btn-outline-primary btn-sm" id="btnOpenLoyaltyConfig" data-permission="loyalty_manage">
                                 ⚙️ Loyalty & Tier Settings
                             </button>
@@ -705,6 +709,17 @@
                         </div>
                     </div>
 
+                    <!-- Date Range Filter Bar -->
+                    <div class="money-date-filter-bar" style="display: flex; gap: 10px; align-items: center; margin-bottom: 20px; background: #ffffff; padding: 12px 18px; border-radius: 8px; border: 1px solid var(--border-color); flex-wrap: wrap;">
+                        <span style="font-size: 13px; font-weight: 700; color: #334155;">📅 Date Range Filter:</span>
+                        <input type="date" id="moneyStartDate" class="form-control" style="width: 135px; height: 34px; font-size: 12px;" title="Start Date">
+                        <span style="font-size: 12px; color: var(--text-muted);">to</span>
+                        <input type="date" id="moneyEndDate" class="form-control" style="width: 135px; height: 34px; font-size: 12px;" title="End Date">
+                        <button class="btn btn-primary btn-sm" id="btnApplyMoneyFilter" style="height: 34px; padding: 0 14px; font-size: 12px;">Apply Filter</button>
+                        <button class="btn btn-outline-secondary btn-sm" id="btnResetMoneyFilter" style="height: 34px; padding: 0 12px; font-size: 12px;">Reset (All Time)</button>
+                        <span id="moneyFilterStatusText" style="font-size: 12px; color: #64748b; margin-left: auto; font-weight: 500;">Showing All Time Records</span>
+                    </div>
+
                     <!-- Money Summary Cards -->
                     <div class="kpi-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 24px;">
                         <div class="kpi-card" style="border-left: 4px solid #ef4444;">
@@ -713,7 +728,7 @@
                                 <span class="kpi-icon" style="background: #fee2e2; color: #dc2626;">💸</span>
                             </div>
                             <div class="kpi-value" id="moneyTotalExpenses" style="color: #dc2626;">Rs. 0.00</div>
-                            <div class="kpi-meta" id="moneyMonthExpenses">This Month: Rs. 0.00</div>
+                            <div class="kpi-meta" id="moneyExpCount">0 recorded expenses</div>
                         </div>
 
                         <div class="kpi-card" style="border-left: 4px solid #10b981;">
@@ -722,7 +737,7 @@
                                 <span class="kpi-icon" style="background: #dcfce7; color: #059669;">🏦</span>
                             </div>
                             <div class="kpi-value" id="moneyTotalInvestments" style="color: #059669;">Rs. 0.00</div>
-                            <div class="kpi-meta" id="moneyMonthInvestments">This Month: Rs. 0.00</div>
+                            <div class="kpi-meta" id="moneyInvCount">0 recorded investments</div>
                         </div>
 
                         <div class="kpi-card" style="border-left: 4px solid #3b82f6;">
@@ -731,7 +746,7 @@
                                 <span class="kpi-icon" style="background: #dbeafe; color: #1e40af;">⚖️</span>
                             </div>
                             <div class="kpi-value" id="moneyNetImpact">Rs. 0.00</div>
-                            <div class="kpi-meta" id="moneyMonthNetImpact">This Month: Rs. 0.00</div>
+                            <div class="kpi-meta" id="moneyNetCount">Net balance in period</div>
                         </div>
                     </div>
 
@@ -1383,6 +1398,14 @@
                     <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
                         Configure how customer loyalty points are earned and how membership tiers are ranked.
                     </p>
+
+                    <div style="background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
+                        <div>
+                            <strong style="color: #3730a3; font-size: 13.5px; display: block;">Enable Customer Loyalty & Tiers</strong>
+                            <span style="font-size: 11.5px; color: #475569;">When unchecked, customer point accumulation & POS rewards are disabled.</span>
+                        </div>
+                        <input type="checkbox" id="modalEnableLoyaltyProgram" style="width: 20px; height: 20px; cursor: pointer;">
+                    </div>
 
                     <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 14px; margin-bottom: 16px;">
                         <h4 style="font-size: 13.5px; font-weight: 700; color: #166534; margin: 0 0 10px 0;">

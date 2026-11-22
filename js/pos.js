@@ -227,7 +227,7 @@ const AppPOS = (function () {
                     <strong>${escapeHtml(m.name)}</strong> • ${escapeHtml(m.vehicleModel || 'Vehicle')}
                 </div>
                 <div style="font-size: 10.5px; color: #059669;">
-                    ★ ${m.tier} Member (${m.loyaltyPoints} Pts) • ${m.totalVisits} Visits
+                    ${window.AppCustomers && AppCustomers.isLoyaltyEnabled() ? `★ ${m.tier} Member (${m.loyaltyPoints} Pts) • ` : ''}${m.totalVisits} Visits
                 </div>
             </div>
         `).join('');
@@ -293,21 +293,47 @@ const AppPOS = (function () {
         const badge = document.getElementById('posLoyaltyBadge');
         const pointsText = document.getElementById('posLoyaltyPointsText');
         const discountText = document.getElementById('posLoyaltyDiscountText');
+        const btnRedeem = document.getElementById('btnRedeemLoyalty');
         const lastTyresEl = document.getElementById('posLastTyresFitted');
         const historyBtn = document.getElementById('btnPosViewVehicleHistory');
         const currency = AppSettings.getCurrency();
+        const isLoyaltyOn = window.AppCustomers && AppCustomers.isLoyaltyEnabled();
 
         if (badge) {
-            badge.textContent = `★ ${cust.tier} Member`;
-            badge.className = `badge ${cust.tierBadge || 'badge-warning'}`;
-            badge.style.display = 'inline-flex';
+            if (isLoyaltyOn) {
+                badge.textContent = `★ ${cust.tier} Member`;
+                badge.className = `badge ${cust.tierBadge || 'badge-warning'}`;
+                badge.style.display = 'inline-flex';
+            } else {
+                badge.style.display = 'none';
+            }
         }
 
         if (banner) {
             banner.style.display = 'block';
             const discVal = cust.discountValue !== undefined ? cust.discountValue : cust.loyaltyPoints;
-            if (pointsText) pointsText.textContent = `${cust.loyaltyPoints} Loyalty Points Available`;
-            if (discountText) discountText.textContent = `${currency}${discVal.toFixed(2)} discount value available`;
+
+            if (pointsText) {
+                if (isLoyaltyOn) {
+                    pointsText.textContent = `${cust.loyaltyPoints} Loyalty Points Available`;
+                    pointsText.style.display = 'inline';
+                } else {
+                    pointsText.style.display = 'none';
+                }
+            }
+
+            if (discountText) {
+                if (isLoyaltyOn) {
+                    discountText.textContent = `${currency}${discVal.toFixed(2)} discount value available`;
+                    discountText.style.display = 'inline';
+                } else {
+                    discountText.style.display = 'none';
+                }
+            }
+
+            if (btnRedeem) {
+                btnRedeem.style.display = isLoyaltyOn ? 'inline-block' : 'none';
+            }
 
             if (lastTyresEl) {
                 if (cust.fittedTyres && cust.fittedTyres.length > 0) {
@@ -340,6 +366,11 @@ const AppPOS = (function () {
      * Redeem Loyalty Points into Discount input
      */
     function applyLoyaltyDiscount() {
+        if (!window.AppCustomers || !AppCustomers.isLoyaltyEnabled()) {
+            AppNotification.toast('Loyalty Disabled', 'Loyalty & rewards program is currently turned off.', 'info');
+            return;
+        }
+
         if (!activeCustomerProfile || activeCustomerProfile.loyaltyPoints <= 0) {
             AppNotification.toast('No Points', 'Customer does not have available loyalty points.', 'warning');
             return;

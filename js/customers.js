@@ -358,8 +358,11 @@ const AppCustomers = (function () {
                                 <span class="badge ${c.tierBadge}" style="font-size: 11px; padding: 4px 8px;">
                                     ★ ${c.tier} Member
                                 </span>
-                                <div style="font-size: 12px; font-weight: 700; color: #0284c7; margin-top: 4px;">
-                                    ${c.loyaltyPoints} Points
+                                <div style="font-size: 13px; font-weight: 700; color: #0284c7; margin-top: 4px;">
+                                    ${c.loyaltyPoints} Pts Avail.
+                                </div>
+                                <div style="font-size: 10px; color: #64748b; margin-top: 2px;">
+                                    <span style="color: #16a34a;">Earned: ${c.lifetimePoints || 0}</span> • <span style="color: #dc2626;">Redeemed: ${c.pointsClaimed || 0}</span>
                                 </div>
                             ` : `
                                 <span class="badge badge-secondary" style="font-size: 10px; padding: 3px 6px; color: #64748b; background: #f1f5f9;">
@@ -476,7 +479,12 @@ const AppCustomers = (function () {
                                 ★ ${c.tier} Member
                             </span>
                             <div style="font-size: 15px; font-weight: 800; color: #0284c7; margin-top: 6px;">
-                                ${c.loyaltyPoints} Points (${currency}${(c.discountValue || c.loyaltyPoints).toFixed(2)} Discount)
+                                Available: ${c.loyaltyPoints} Pts <span style="font-size: 12px; font-weight: 600; color: #0369a1;">(${currency}${(c.discountValue || c.loyaltyPoints).toFixed(2)})</span>
+                            </div>
+                            <div style="font-size: 11.5px; font-weight: 600; color: #64748b; margin-top: 3px; display: flex; justify-content: flex-end; gap: 8px;">
+                                <span style="color: #16a34a;" title="Total Points Earned">Earned: <strong>${c.lifetimePoints || 0}</strong></span>
+                                <span>•</span>
+                                <span style="color: #dc2626;" title="Total Points Claimed/Redeemed">Redeemed: <strong>${c.pointsClaimed || 0}</strong></span>
                             </div>
                         ` : `
                             <span class="badge badge-secondary" style="font-size: 11px; padding: 4px 8px; color: #64748b; background: #f1f5f9;">

@@ -152,7 +152,11 @@ const AppPOS = (function () {
         const discountInput = document.getElementById('posDiscountInput');
         if (discountInput) {
             discountInput.addEventListener('input', () => {
-                loyaltyDiscountRedeemed = 0; // If user manually types a discount, reset loyalty redemption flag
+                // Only reset loyalty redemption if the user typed manually (not set programmatically by applyLoyaltyDiscount)
+                if (!_applyingLoyaltyProgrammatically) {
+                    loyaltyDiscountRedeemed = 0;
+                    loyaltyPointsClaimed = 0;
+                }
                 renderCartSummary();
                 calculateChange();
             });
@@ -199,6 +203,8 @@ const AppPOS = (function () {
 
     let activeCustomerProfile = null;
     let loyaltyDiscountRedeemed = 0; // Track how many points or discount value was redeemed from loyalty
+    let loyaltyPointsClaimed = 0;    // Track actual POINTS claimed (never reset by input event)
+    let _applyingLoyaltyProgrammatically = false; // Guard flag to prevent input event from resetting loyalty
 
     /**
      * Handle live vehicle suggestions and returning customer lookup
@@ -356,6 +362,7 @@ const AppPOS = (function () {
     function clearCustomerLoyaltyUI() {
         activeCustomerProfile = null;
         loyaltyDiscountRedeemed = 0;
+        loyaltyPointsClaimed = 0;
         const banner = document.getElementById('posReturningBanner');
         const badge = document.getElementById('posLoyaltyBadge');
         const historyBtn = document.getElementById('btnPosViewVehicleHistory');
@@ -388,11 +395,22 @@ const AppPOS = (function () {
 
         const discountInput = document.getElementById('posDiscountInput');
         if (discountInput) {
+            // Compute claimed points from customer's available points (not from discount amount)
+            const rules = window.AppCustomers ? AppCustomers.getLoyaltyRules() : {};
+            const pVal = (rules.pointValue > 0) ? rules.pointValue : 1.0;
+            const pointsToRedeem = activeCustomerProfile.loyaltyPoints || 0;
+            const actualPointsClaiming = Math.min(pointsToRedeem, Math.round(discountToApply / pVal));
+
+            // Set guard so input event does NOT reset our loyalty tracking
+            _applyingLoyaltyProgrammatically = true;
             discountInput.value = discountToApply;
             loyaltyDiscountRedeemed = discountToApply;
+            loyaltyPointsClaimed = actualPointsClaiming; // Store points directly — this is what gets saved
+            _applyingLoyaltyProgrammatically = false;
+
             renderCartSummary();
             calculateChange();
-            AppNotification.toast('Loyalty Redeemed', `Applied ${AppSettings.getCurrency()}${discountToApply.toFixed(2)} loyalty discount!`, 'success');
+            AppNotification.toast('Loyalty Redeemed', `Applied ${AppSettings.getCurrency()}${discountToApply.toFixed(2)} loyalty discount (${actualPointsClaiming} pts)!`, 'success');
         }
     }
 
@@ -580,6 +598,7 @@ const AppPOS = (function () {
     function clearCart() {
         cart = [];
         loyaltyDiscountRedeemed = 0;
+        loyaltyPointsClaimed = 0;
         const discountInput = document.getElementById('posDiscountInput');
         if (discountInput) discountInput.value = '0';
         const tenderedInput = document.getElementById('posAmountTendered');
@@ -750,8 +769,10 @@ const AppPOS = (function () {
         const currentUser = AppAuth.getCurrentUser();
 
         // Calculate points claimed in this transaction
-        let pointsRedeemedCount = 0;
-        if (loyaltyDiscountRedeemed > 0 && window.AppCustomers && AppCustomers.isLoyaltyEnabled()) {
+        // Use loyaltyPointsClaimed (set directly in applyLoyaltyDiscount) — most reliable source
+        let pointsRedeemedCount = loyaltyPointsClaimed > 0 ? loyaltyPointsClaimed : 0;
+        // Fallback: if loyaltyPointsClaimed wasn't set but discountRedeemed was, re-calculate
+        if (pointsRedeemedCount === 0 && loyaltyDiscountRedeemed > 0 && window.AppCustomers && AppCustomers.isLoyaltyEnabled()) {
             const rules = AppCustomers.getLoyaltyRules();
             const pVal = rules.pointValue > 0 ? rules.pointValue : 1.0;
             pointsRedeemedCount = Math.round(loyaltyDiscountRedeemed / pVal);

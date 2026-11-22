@@ -7,7 +7,53 @@ const AppAuth = (function () {
     'use strict';
 
     const SESSION_KEY = 'treadpro_session_user';
+    const LAST_ACTIVE_KEY = 'treadpro_last_active_time';
+    const INACTIVITY_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes safety timeout
     let currentUser = null;
+    let inactivityTimer = null;
+
+    /**
+     * Record last user activity timestamp
+     */
+    function recordActivity() {
+        const now = Date.now();
+        localStorage.setItem(LAST_ACTIVE_KEY, String(now));
+        resetInactivityTimer();
+    }
+
+    /**
+     * Start/reset the live 5-minute inactivity timer
+     */
+    function resetInactivityTimer() {
+        if (inactivityTimer) clearTimeout(inactivityTimer);
+        if (!currentUser) return;
+
+        inactivityTimer = setTimeout(() => {
+            if (currentUser) {
+                logout('Session expired due to 5 minutes of inactivity.');
+            }
+        }, INACTIVITY_TIMEOUT_MS);
+    }
+
+    /**
+     * Attach global user activity listeners (mouse, keyboard, touch, scroll)
+     */
+    function attachActivityListeners() {
+        const events = ['mousedown', 'keydown', 'touchstart', 'scroll', 'click'];
+        // Debounce activity recording to avoid excessive localStorage writes
+        let lastLogged = 0;
+        const onUserActivity = () => {
+            const now = Date.now();
+            if (now - lastLogged > 2000) { // Every 2s max
+                lastLogged = now;
+                recordActivity();
+            }
+        };
+
+        events.forEach(evt => {
+            window.addEventListener(evt, onUserActivity, { passive: true });
+        });
+    }
 
     // Role Permissions Matrix
     const PERMISSIONS = {
@@ -49,8 +95,21 @@ const AppAuth = (function () {
      * Initialize Auth on page load
      */
     async function init() {
+        attachActivityListeners();
+
         const stored = sessionStorage.getItem(SESSION_KEY) || localStorage.getItem(SESSION_KEY);
         if (stored) {
+            // Check if 5-minute inactivity timeout has already expired while page was closed/refreshing
+            const lastActiveStr = localStorage.getItem(LAST_ACTIVE_KEY);
+            const lastActive = lastActiveStr ? parseInt(lastActiveStr, 10) : 0;
+            const now = Date.now();
+
+            if (lastActive && (now - lastActive > INACTIVITY_TIMEOUT_MS)) {
+                // Session expired while away
+                logout('Session expired due to 5 minutes of inactivity.');
+                return null;
+            }
+
             try {
                 currentUser = JSON.parse(stored);
                 // Verify user still exists and is active in DB
@@ -65,6 +124,8 @@ const AppAuth = (function () {
                     fullName: userInDb.fullName,
                     role: userInDb.role
                 };
+                // User active, reset inactivity timer
+                recordActivity();
             } catch (e) {
                 currentUser = null;
             }
@@ -112,6 +173,7 @@ const AppAuth = (function () {
             sessionStorage.setItem(SESSION_KEY, sessionStr);
         }
 
+        recordActivity();
         updateUI();
         return currentUser;
     }
@@ -119,11 +181,21 @@ const AppAuth = (function () {
     /**
      * Log out current user
      */
-    function logout() {
+    function logout(reason = null) {
         currentUser = null;
+        if (inactivityTimer) {
+            clearTimeout(inactivityTimer);
+            inactivityTimer = null;
+        }
         sessionStorage.removeItem(SESSION_KEY);
         localStorage.removeItem(SESSION_KEY);
+        localStorage.removeItem(LAST_ACTIVE_KEY);
         updateUI();
+
+        if (reason && window.AppNotification) {
+            AppNotification.toast('Session Timeout', reason, 'warning');
+        }
+
         // Dispatch event
         window.dispatchEvent(new CustomEvent('auth:logout'));
     }

@@ -24,7 +24,8 @@ const AppAuth = (function () {
             'analytics_profits',
             'settings_manage',
             'database_backup',
-            'loyalty_manage'
+            'loyalty_manage',
+            'money_manage'
         ],
         manager: [
             'pos_checkout',
@@ -34,7 +35,8 @@ const AppAuth = (function () {
             'stock_in',
             'sales_view',
             'analytics_view',
-            'loyalty_manage'
+            'loyalty_manage',
+            'money_manage'
         ],
         cashier: [
             'pos_checkout',

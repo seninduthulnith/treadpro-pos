@@ -155,6 +155,8 @@ const AppRouter = (function () {
             if (window.AppCustomers) AppCustomers.loadCustomers();
         } else if (viewName === 'purchases') {
             renderPurchasesHistory();
+        } else if (viewName === 'money') {
+            if (window.AppMoney) AppMoney.loadEntries();
         } else if (viewName === 'users') {
             if (window.AppUsers) AppUsers.loadUsers();
         } else if (viewName === 'services') {
@@ -372,6 +374,7 @@ const AppRouter = (function () {
                 if (window.AppAnalytics) await AppAnalytics.refreshCharts();
                 if (window.AppUsers) await AppUsers.loadUsers();
                 if (window.AppServices) await AppServices.loadServices();
+                if (window.AppMoney) await AppMoney.loadEntries();
             } catch (err) {
                 console.error('Restore error:', err);
                 AppNotification.toast('Restore Failed', 'Invalid backup file format.', 'error');
@@ -411,6 +414,7 @@ const AppRouter = (function () {
             if (window.AppInventory) await AppInventory.loadItems();
             if (window.AppPOS) await AppPOS.loadProducts();
             if (window.AppAnalytics) await AppAnalytics.refreshCharts();
+            if (window.AppMoney) await AppMoney.loadEntries();
             renderSalesHistory();
             renderPurchasesHistory();
         } catch (err) {
@@ -473,6 +477,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         await AppAnalytics.init();
         await AppUsers.init();
         await AppServices.init();
+        if (window.AppMoney) {
+            await AppMoney.init();
+        }
         AppInvoice.init();
 
         // 5. Setup Navigation Links

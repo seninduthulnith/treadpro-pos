@@ -97,7 +97,7 @@ const AppFirebase = (function () {
 
         updateSyncStatusUI('Backing up all data to Google Cloud...', 'warning');
 
-        const stores = ['items', 'sales', 'purchases', 'services', 'users', 'settings'];
+        const stores = ['items', 'sales', 'purchases', 'services', 'users', 'settings', 'expenses', 'investments'];
         let totalCount = 0;
 
         for (const storeName of stores) {
@@ -151,7 +151,7 @@ const AppFirebase = (function () {
 
         updateSyncStatusUI('Clearing historical data from Google Cloud...', 'warning');
 
-        const storesToClear = ['items', 'sales', 'purchases'];
+        const storesToClear = ['items', 'sales', 'purchases', 'expenses', 'investments'];
 
         for (const storeName of storesToClear) {
             try {
@@ -181,7 +181,7 @@ const AppFirebase = (function () {
 
         updateSyncStatusUI('Fetching backup from Google Cloud...', 'warning');
 
-        const stores = ['items', 'sales', 'purchases', 'services', 'users', 'settings'];
+        const stores = ['items', 'sales', 'purchases', 'services', 'users', 'settings', 'expenses', 'investments'];
         let totalRestored = 0;
 
         for (const storeName of stores) {

@@ -22,11 +22,15 @@ const AppAnalytics = (function () {
     let rawSales = [];
     let rawPurchases = [];
     let rawItems = [];
+    let rawExpenses = [];
+    let rawInvestments = [];
 
     // Filtered subsets according to date filter
     let currentSales = [];
     let currentPurchases = [];
     let currentItems = [];
+    let currentExpenses = [];
+    let currentInvestments = [];
 
     let topTyresMetric = 'quantity'; // 'quantity' or 'revenue'
     let topTubesMetric = 'quantity'; // 'quantity' or 'revenue'
@@ -134,6 +138,8 @@ const AppAnalytics = (function () {
             currentSales = [...rawSales];
             currentPurchases = [...rawPurchases];
             currentItems = [...rawItems];
+            currentExpenses = [...rawExpenses];
+            currentInvestments = [...rawInvestments];
             return;
         }
 
@@ -150,6 +156,16 @@ const AppAnalytics = (function () {
             return t >= startTs && t <= endTs;
         });
 
+        currentExpenses = rawExpenses.filter(e => {
+            const t = new Date(e.date || e.createdAt).getTime();
+            return t >= startTs && t <= endTs;
+        });
+
+        currentInvestments = rawInvestments.filter(i => {
+            const t = new Date(i.date || i.createdAt).getTime();
+            return t >= startTs && t <= endTs;
+        });
+
         currentItems = [...rawItems];
     }
 
@@ -160,6 +176,8 @@ const AppAnalytics = (function () {
         rawSales = await AppDB.getAll('sales');
         rawPurchases = await AppDB.getAll('purchases');
         rawItems = await AppDB.getAll('items');
+        rawExpenses = await AppDB.getAll('expenses');
+        rawInvestments = await AppDB.getAll('investments');
 
         filterDatasets();
         renderAllVisualizations();
@@ -463,7 +481,9 @@ const AppAnalytics = (function () {
                 endTime: endOfWeek.getTime(),
                 purchasesCost: 0,
                 salesRevenue: 0,
-                salesCost: 0
+                salesCost: 0,
+                extraExpenses: 0,
+                extraInvestments: 0
             });
         }
 
@@ -507,6 +527,24 @@ const AppAnalytics = (function () {
                         w.salesCost += (Number(it.costPrice || 0) * Number(it.quantity || 1));
                     });
                 }
+            }
+        });
+
+        // Aggregate Extra Expenses from Money Management by Thursday week
+        currentExpenses.forEach(e => {
+            const t = new Date(e.date || e.createdAt).getTime();
+            const w = weeks.find(wk => t >= wk.startTime && t <= wk.endTime);
+            if (w) {
+                w.extraExpenses += Number(e.amount || 0);
+            }
+        });
+
+        // Aggregate Extra Investments from Money Management by Thursday week
+        currentInvestments.forEach(inv => {
+            const t = new Date(inv.date || inv.createdAt).getTime();
+            const w = weeks.find(wk => t >= wk.startTime && t <= wk.endTime);
+            if (w) {
+                w.extraInvestments += Number(inv.amount || 0);
             }
         });
 
@@ -622,14 +660,14 @@ const AppAnalytics = (function () {
 
     /**
      * Render the Re-investment & Restock Cash Flow Table
-     */
-    /**
-     * Render the Re-investment & Restock Cash Flow Table
      * Displays:
-     * 1. Weekly Sales Revenue (Actual cash in hand from sales)
-     * 2. Immediate Restock Power (Rolling cash generated from sales ready to reinvest immediately)
-     * 3. Stock Purchases Made (Supplier expenses)
-     * 4. Net Cycle Balance (Overall net difference)
+     * 1. Week Cycle (Thursday Ending)
+     * 2. On-Hand Stock Valuation
+     * 3. Weekly Sales Revenue (Actual cash in hand from sales)
+     * 4. Stock Purchases Made (Supplier tyre/tube expenses)
+     * 5. Extra Expenses (-) [From Money Management: rent, salary, bills, etc.]
+     * 6. Extra Investments (+) [From Money Management: loans, owner capital, etc.]
+     * 7. Immediate Restock Power / Available Cash (Sales + Extra Investments - Stock Purchases - Extra Expenses)
      */
     function renderReinvestmentTable(weeks, stockCostData) {
         const tbody = document.getElementById('tableWeeklyReinvestmentBody');
@@ -644,10 +682,15 @@ const AppAnalytics = (function () {
             const stockCost = stockCostData[i] || 0;
             const rev = w.salesRevenue || 0;
             const bought = w.purchasesCost || 0;
-            const netCycleBalance = rev - bought;
+            const expenses = w.extraExpenses || 0;
+            const investments = w.extraInvestments || 0;
 
-            const netBadgeClass = netCycleBalance >= 0 ? 'badge-success' : 'badge-danger';
-            const netPrefix = netCycleBalance >= 0 ? '+' : '';
+            // Immediate Restock Power (Net On-Hand Real Money to restock tyres & tubes)
+            // Sales Revenue + External Injected Capital - Purchases Made - Shop Expenses
+            const restockPower = rev + investments - bought - expenses;
+
+            const powerBadgeClass = restockPower >= 0 ? 'badge-success' : 'badge-danger';
+            const powerPrefix = restockPower >= 0 ? '+' : '';
 
             rowsHtml += `
                 <tr>
@@ -656,20 +699,26 @@ const AppAnalytics = (function () {
                     <td style="color: #1e40af; font-weight: 700; font-size: 14px;">
                         ${currency}${rev.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
-                    <td>
-                        <strong style="color: #059669; font-size: 14px;">
-                            ${currency}${rev.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </strong>
-                        <span style="font-size: 11px; color: var(--text-muted); display: block;">Instant cash from sales to buy stock</span>
-                    </td>
                     <td style="color: #92400e; font-weight: 600;">
                         ${currency}${bought.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                     <td>
-                        <span class="badge ${netBadgeClass}" style="font-size: 12px; padding: 4px 10px;">
-                            ${netPrefix}${currency}${netCycleBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </span>
-                        <span style="font-size: 11px; color: var(--text-muted); display: block;">Sales vs purchases</span>
+                        <strong style="color: #dc2626; font-size: 13px;">
+                            ${expenses > 0 ? '-' : ''}${currency}${expenses.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </strong>
+                        <span style="font-size: 10px; color: var(--text-muted); display: block;">Rent, salary, overheads</span>
+                    </td>
+                    <td>
+                        <strong style="color: #059669; font-size: 13px;">
+                            ${investments > 0 ? '+' : ''}${currency}${investments.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </strong>
+                        <span style="font-size: 10px; color: var(--text-muted); display: block;">Loans, owner capital</span>
+                    </td>
+                    <td>
+                        <strong style="color: ${restockPower >= 0 ? '#059669' : '#dc2626'}; font-size: 15px; font-weight: 800;">
+                            ${powerPrefix}${currency}${restockPower.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </strong>
+                        <span style="font-size: 10px; color: var(--text-muted); display: block;">Net cash available to buy stock</span>
                     </td>
                 </tr>
             `;

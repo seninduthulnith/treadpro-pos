@@ -64,6 +64,10 @@
                     <span class="nav-icon">🚗</span>
                     <span>Vehicles & Customers</span>
                 </a>
+                <a href="#money" class="nav-link" data-view="money" data-permission="money_manage">
+                    <span class="nav-icon">💰</span>
+                    <span>Money Management</span>
+                </a>
 
                 <div class="menu-section-label" data-admin-only>Services & Growth</div>
                 <a href="#services" class="nav-link" data-view="services" data-admin-only>
@@ -268,9 +272,10 @@
                                         <th>Week (Thursday Ending)</th>
                                         <th>On-Hand Stock Valuation</th>
                                         <th>Weekly Sales Revenue (Cash In)</th>
-                                        <th>Immediate Restock Power (from Sales)</th>
                                         <th>Stock Purchases Made</th>
-                                        <th>Net Cycle Balance</th>
+                                        <th>Extra Expenses (-)</th>
+                                        <th>Extra Investments (+)</th>
+                                        <th>Immediate Restock Power (Net Cash to Buy Stock)</th>
                                     </tr>
                                 </thead>
                                 <tbody id="tableWeeklyReinvestmentBody">
@@ -678,6 +683,89 @@
                     <!-- Customer Cards Grid -->
                     <div class="customers-grid" id="customersListContainer">
                         <!-- Cards injected dynamically -->
+                    </div>
+                </section>
+
+                <!-- ==================================================================
+                     VIEW: Money Management (Extra Expenses & Investments)
+                     ================================================================== -->
+                <section id="view-money" class="view-section" data-permission="money_manage">
+                    <div class="view-header">
+                        <div class="view-title-block">
+                            <h1>💰 Money Management & Cash Flow</h1>
+                            <span>Record shop overhead expenses & outside capital investments to accurately compute your Tyre/Tube restock power</span>
+                        </div>
+                        <div class="header-action-group" style="display: flex; gap: 10px;">
+                            <button class="btn btn-outline-danger btn-sm" onclick="AppMoney.openExpenseModal()">
+                                🔻 + Record Expense
+                            </button>
+                            <button class="btn btn-emerald btn-sm" onclick="AppMoney.openInvestmentModal()">
+                                🟢 + Add Investment / Loan
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Money Summary Cards -->
+                    <div class="kpi-grid" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 24px;">
+                        <div class="kpi-card" style="border-left: 4px solid #ef4444;">
+                            <div class="kpi-header">
+                                <span class="kpi-title">Total Extra Expenses (-)</span>
+                                <span class="kpi-icon" style="background: #fee2e2; color: #dc2626;">💸</span>
+                            </div>
+                            <div class="kpi-value" id="moneyTotalExpenses" style="color: #dc2626;">Rs. 0.00</div>
+                            <div class="kpi-meta" id="moneyMonthExpenses">This Month: Rs. 0.00</div>
+                        </div>
+
+                        <div class="kpi-card" style="border-left: 4px solid #10b981;">
+                            <div class="kpi-header">
+                                <span class="kpi-title">Total Extra Investments (+)</span>
+                                <span class="kpi-icon" style="background: #dcfce7; color: #059669;">🏦</span>
+                            </div>
+                            <div class="kpi-value" id="moneyTotalInvestments" style="color: #059669;">Rs. 0.00</div>
+                            <div class="kpi-meta" id="moneyMonthInvestments">This Month: Rs. 0.00</div>
+                        </div>
+
+                        <div class="kpi-card" style="border-left: 4px solid #3b82f6;">
+                            <div class="kpi-header">
+                                <span class="kpi-title">Net Capital Impact (Invest - Exp)</span>
+                                <span class="kpi-icon" style="background: #dbeafe; color: #1e40af;">⚖️</span>
+                            </div>
+                            <div class="kpi-value" id="moneyNetImpact">Rs. 0.00</div>
+                            <div class="kpi-meta" id="moneyMonthNetImpact">This Month: Rs. 0.00</div>
+                        </div>
+                    </div>
+
+                    <!-- Ledger Table Card -->
+                    <div class="table-card">
+                        <div class="table-card-header" style="flex-wrap: wrap; gap: 12px;">
+                            <div class="money-tabs" style="display: flex; gap: 8px;">
+                                <button type="button" class="btn btn-sm btn-outline-secondary money-tab-btn active" data-tab="all">All Records</button>
+                                <button type="button" class="btn btn-sm btn-outline-danger money-tab-btn" data-tab="expenses">🔻 Expenses Only</button>
+                                <button type="button" class="btn btn-sm btn-outline-success money-tab-btn" data-tab="investments">🟢 Investments Only</button>
+                            </div>
+                            <div class="table-search">
+                                <input type="text" id="moneySearchInput" class="form-input form-input-sm" placeholder="Search category, source, notes...">
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="app-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Type</th>
+                                        <th>Category / Source</th>
+                                        <th>Description / Notes</th>
+                                        <th>Payment Method</th>
+                                        <th>Amount</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="moneyLedgerTableBody">
+                                    <!-- Injected dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </section>
 
@@ -1361,6 +1449,129 @@
         </div>
     </div>
 
+    <!-- 9. Record Extra Expense Modal -->
+    <div id="modalAddExpense" class="modal-overlay">
+        <div class="modal-dialog" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>🔻 Record Extra Shop Expense</h3>
+                <button class="btn-modal-close" onclick="closeModal('modalAddExpense')">✕</button>
+            </div>
+            <form id="formExpenseEntry">
+                <div class="modal-body">
+                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+                        This expense will be deducted from your shop's available cash to buy new tyre and tube stock.
+                    </p>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="expDate">Expense Date *</label>
+                            <input type="date" id="expDate" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="expCategory">Category *</label>
+                            <select id="expCategory" class="form-control" required>
+                                <option value="Shop Rent">Shop Rent</option>
+                                <option value="Electricity & Utilities">Electricity & Utilities</option>
+                                <option value="Staff Salary & Wages">Staff Salary & Wages</option>
+                                <option value="Shop Maintenance & Repairs">Shop Maintenance & Repairs</option>
+                                <option value="Transport & Freight">Transport & Freight</option>
+                                <option value="Food & Refreshments">Food & Refreshments</option>
+                                <option value="Tools & Machinery">Tools & Machinery</option>
+                                <option value="Internet & Phone Bill">Internet & Phone Bill</option>
+                                <option value="Marketing & Advertising">Marketing & Advertising</option>
+                                <option value="Other Expense">Other Expense</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="expAmount">Amount (Rs.) *</label>
+                            <input type="number" id="expAmount" class="form-control" min="0.01" step="0.01" placeholder="e.g. 25000.00" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="expPaymentMethod">Paid Via *</label>
+                            <select id="expPaymentMethod" class="form-control" required>
+                                <option value="cash">Cash in Hand</option>
+                                <option value="bank_transfer">Bank Transfer</option>
+                                <option value="cheque">Cheque</option>
+                                <option value="card">Card / Other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="expDescription">Description / Notes</label>
+                        <input type="text" id="expDescription" class="form-control" placeholder="e.g. Paid monthly shop rent to landlord">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" onclick="closeModal('modalAddExpense')">Cancel</button>
+                    <button type="submit" class="btn btn-danger">🔻 Save & Deduct Cash</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 10. Add Extra Investment / Loan Modal -->
+    <div id="modalAddInvestment" class="modal-overlay">
+        <div class="modal-dialog" style="max-width: 500px;">
+            <div class="modal-header">
+                <h3>🟢 Add Extra Investment / Loan Capital</h3>
+                <button class="btn-modal-close" onclick="closeModal('modalAddInvestment')">✕</button>
+            </div>
+            <form id="formInvestmentEntry">
+                <div class="modal-body">
+                    <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+                        This capital injection will increase your available cash to buy more tyre and tube stock.
+                    </p>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="invDate">Investment Date *</label>
+                            <input type="date" id="invDate" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="invSource">Source of Capital *</label>
+                            <select id="invSource" class="form-control" required>
+                                <option value="Owner Capital">Owner Capital / Personal Savings</option>
+                                <option value="Bank Business Loan">Bank Business Loan</option>
+                                <option value="Private Loan">Private Loan / Third-Party</option>
+                                <option value="Partner Contribution">Partner Contribution</option>
+                                <option value="Other Capital">Other Capital Injection</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="invAmount">Amount (Rs.) *</label>
+                            <input type="number" id="invAmount" class="form-control" min="0.01" step="0.01" placeholder="e.g. 150000.00" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="invPaymentMethod">Deposit Into *</label>
+                            <select id="invPaymentMethod" class="form-control" required>
+                                <option value="cash">Cash in Hand</option>
+                                <option value="bank_transfer">Shop Bank Account</option>
+                                <option value="cheque">Cheque</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="invDescription">Description / Reference</label>
+                        <input type="text" id="invDescription" class="form-control" placeholder="e.g. Bank loan for import of 50 truck tyres">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" onclick="closeModal('modalAddInvestment')">Cancel</button>
+                    <button type="submit" class="btn btn-emerald">🟢 Save & Increase Cash</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Full Dedicated Authentication Page for Tyre & Tube Shop -->
     <div id="loginPage" class="login-page-screen">
         <div class="login-brand-banner">
@@ -1431,6 +1642,7 @@
     <script src="js/analytics.js"></script>
     <script src="js/users.js"></script>
     <script src="js/services.js"></script>
+    <script src="js/money.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>

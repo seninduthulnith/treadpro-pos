@@ -8,7 +8,7 @@ const AppDB = (function () {
     'use strict';
 
     const DB_NAME = 'TreadProTyreTubeDB_v2';
-    const DB_VERSION = 1;
+    const DB_VERSION = 2;
     let dbInstance = null;
 
     /**
@@ -70,6 +70,20 @@ const AppDB = (function () {
                 // 6. Settings Store
                 if (!db.objectStoreNames.contains('settings')) {
                     db.createObjectStore('settings', { keyPath: 'key' });
+                }
+
+                // 7. Extra Expenses Store (Shop overheads: Rent, Salaries, Electricity, Maintenance, etc.)
+                if (!db.objectStoreNames.contains('expenses')) {
+                    const expenseStore = db.createObjectStore('expenses', { keyPath: 'id' });
+                    expenseStore.createIndex('date', 'date', { unique: false });
+                    expenseStore.createIndex('category', 'category', { unique: false });
+                }
+
+                // 8. Extra Investments Store (Capital injection: Loans, Owner Investments, etc.)
+                if (!db.objectStoreNames.contains('investments')) {
+                    const investmentStore = db.createObjectStore('investments', { keyPath: 'id' });
+                    investmentStore.createIndex('date', 'date', { unique: false });
+                    investmentStore.createIndex('source', 'source', { unique: false });
                 }
             };
 
@@ -417,10 +431,12 @@ const AppDB = (function () {
     async function clearAllHistoricalData() {
         const db = await openDB();
         return new Promise((resolve, reject) => {
-            const tx = db.transaction(['items', 'sales', 'purchases'], 'readwrite');
+            const tx = db.transaction(['items', 'sales', 'purchases', 'expenses', 'investments'], 'readwrite');
             tx.objectStore('items').clear();
             tx.objectStore('sales').clear();
             tx.objectStore('purchases').clear();
+            tx.objectStore('expenses').clear();
+            tx.objectStore('investments').clear();
             tx.oncomplete = () => resolve(true);
             tx.onerror = () => reject(tx.error);
         });
@@ -430,7 +446,7 @@ const AppDB = (function () {
      * Backup whole database to JSON object for download
      */
     async function exportDatabaseToJson() {
-        const stores = ['items', 'sales', 'purchases', 'users', 'services', 'settings'];
+        const stores = ['items', 'sales', 'purchases', 'users', 'services', 'settings', 'expenses', 'investments'];
         const backupData = {
             appName: 'TreadPro POS',
             exportDate: new Date().toISOString(),
@@ -453,7 +469,7 @@ const AppDB = (function () {
             throw new Error('Invalid backup file structure');
         }
 
-        const stores = ['items', 'sales', 'purchases', 'users', 'services', 'settings'];
+        const stores = ['items', 'sales', 'purchases', 'users', 'services', 'settings', 'expenses', 'investments'];
         const db = await openDB();
 
         for (const storeName of stores) {

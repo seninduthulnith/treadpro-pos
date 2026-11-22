@@ -226,6 +226,7 @@ const AppCustomers = (function () {
                         profile.servicesDone.push({
                             date: sale.date,
                             invoiceNo: sale.invoiceNo,
+                            saleId: sale.id,
                             name: it.itemName || `${it.brand} ${it.size}`,
                             price: it.price || it.total
                         });
@@ -233,6 +234,7 @@ const AppCustomers = (function () {
                         profile.fittedTyres.push({
                             date: sale.date,
                             invoiceNo: sale.invoiceNo,
+                            saleId: sale.id,
                             brand: it.brand,
                             size: it.size,
                             quantity: it.quantity,
@@ -259,20 +261,39 @@ const AppCustomers = (function () {
         const platMin = loyaltyRules.platinumMin || 0;
 
         list.forEach(c => {
-            // User-defined: 1 Point for every Rs. X spent
-            c.loyaltyPoints = Math.floor(c.totalSpent / spendRate);
-            c.discountValue = c.loyaltyPoints * pValue;
+            // User-defined: 1 Point for every Rs. X spent (Gross points earned)
+            const grossPointsEarned = Math.floor(c.totalSpent / spendRate);
 
-            // Tier evaluation according to manager-configured thresholds
-            if (platMin > 0 && c.loyaltyPoints >= platMin) {
+            // Deduct points claimed/redeemed in previous sales
+            let totalPointsClaimed = 0;
+            if (c.sales) {
+                c.sales.forEach(s => {
+                    if (s.pointsClaimed && Number(s.pointsClaimed) > 0) {
+                        totalPointsClaimed += Number(s.pointsClaimed);
+                    } else if (s.discountAmount && Number(s.discountAmount) > 0 && !s.pointsClaimed) {
+                        // Fallback for older sales where discount was applied
+                        // If discount was given, convert discount to claimed points if applicable
+                    }
+                });
+            }
+
+            // Remaining available points to redeem
+            c.loyaltyPoints = Math.max(0, grossPointsEarned - totalPointsClaimed);
+            c.discountValue = c.loyaltyPoints * pValue;
+            c.pointsClaimed = totalPointsClaimed;
+            c.lifetimePoints = grossPointsEarned;
+
+            // Tier evaluation according to lifetime points or active points (typically lifetime points determine VIP status!)
+            const tierMetricPoints = grossPointsEarned;
+            if (platMin > 0 && tierMetricPoints >= platMin) {
                 c.tier = 'Platinum VIP';
                 c.tierColor = '#0284c7'; // Cyan/Platinum
                 c.tierBadge = 'badge-primary';
-            } else if (c.loyaltyPoints >= goldMin) {
+            } else if (tierMetricPoints >= goldMin) {
                 c.tier = 'Gold';
                 c.tierColor = '#f59e0b'; // Gold
                 c.tierBadge = 'badge-warning';
-            } else if (c.loyaltyPoints >= silverMin) {
+            } else if (tierMetricPoints >= silverMin) {
                 c.tier = 'Silver';
                 c.tierColor = '#64748b'; // Silver
                 c.tierBadge = 'badge-info';
@@ -420,7 +441,7 @@ const AppCustomers = (function () {
                     <td><strong>${escapeHtml(it.brand)} ${escapeHtml(it.size)}</strong></td>
                     <td>${it.quantity}</td>
                     <td>${it.odometer ? it.odometer.toLocaleString() + ' km' : 'N/A'}</td>
-                    <td><a href="javascript:void(0)" onclick="closeModal('vehicleHistoryModal'); AppRouter.viewSaleInvoice('${it.invoiceNo}')">${it.invoiceNo}</a></td>
+                    <td><a href="javascript:void(0)" onclick="closeModal('vehicleHistoryModal'); AppRouter.viewSaleInvoice('${it.saleId || it.invoiceNo}')">${it.invoiceNo}</a></td>
                 </tr>
             `).join('');
         }
@@ -434,7 +455,7 @@ const AppCustomers = (function () {
                     <td>${new Date(srv.date).toLocaleDateString()}</td>
                     <td><strong>${escapeHtml(srv.name)}</strong></td>
                     <td>${currency}${Number(srv.price || 0).toFixed(2)}</td>
-                    <td><a href="javascript:void(0)" onclick="closeModal('vehicleHistoryModal'); AppRouter.viewSaleInvoice('${srv.invoiceNo}')">${srv.invoiceNo}</a></td>
+                    <td><a href="javascript:void(0)" onclick="closeModal('vehicleHistoryModal'); AppRouter.viewSaleInvoice('${srv.saleId || srv.invoiceNo}')">${srv.invoiceNo}</a></td>
                 </tr>
             `).join('');
         }

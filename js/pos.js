@@ -152,6 +152,7 @@ const AppPOS = (function () {
         const discountInput = document.getElementById('posDiscountInput');
         if (discountInput) {
             discountInput.addEventListener('input', () => {
+                loyaltyDiscountRedeemed = 0; // If user manually types a discount, reset loyalty redemption flag
                 renderCartSummary();
                 calculateChange();
             });
@@ -197,6 +198,7 @@ const AppPOS = (function () {
     }
 
     let activeCustomerProfile = null;
+    let loyaltyDiscountRedeemed = 0; // Track how many points or discount value was redeemed from loyalty
 
     /**
      * Handle live vehicle suggestions and returning customer lookup
@@ -353,6 +355,7 @@ const AppPOS = (function () {
      */
     function clearCustomerLoyaltyUI() {
         activeCustomerProfile = null;
+        loyaltyDiscountRedeemed = 0;
         const banner = document.getElementById('posReturningBanner');
         const badge = document.getElementById('posLoyaltyBadge');
         const historyBtn = document.getElementById('btnPosViewVehicleHistory');
@@ -386,6 +389,7 @@ const AppPOS = (function () {
         const discountInput = document.getElementById('posDiscountInput');
         if (discountInput) {
             discountInput.value = discountToApply;
+            loyaltyDiscountRedeemed = discountToApply;
             renderCartSummary();
             calculateChange();
             AppNotification.toast('Loyalty Redeemed', `Applied ${AppSettings.getCurrency()}${discountToApply.toFixed(2)} loyalty discount!`, 'success');
@@ -575,6 +579,7 @@ const AppPOS = (function () {
      */
     function clearCart() {
         cart = [];
+        loyaltyDiscountRedeemed = 0;
         const discountInput = document.getElementById('posDiscountInput');
         if (discountInput) discountInput.value = '0';
         const tenderedInput = document.getElementById('posAmountTendered');
@@ -744,6 +749,14 @@ const AppPOS = (function () {
 
         const currentUser = AppAuth.getCurrentUser();
 
+        // Calculate points claimed in this transaction
+        let pointsRedeemedCount = 0;
+        if (loyaltyDiscountRedeemed > 0 && window.AppCustomers && AppCustomers.isLoyaltyEnabled()) {
+            const rules = AppCustomers.getLoyaltyRules();
+            const pVal = rules.pointValue > 0 ? rules.pointValue : 1.0;
+            pointsRedeemedCount = Math.round(loyaltyDiscountRedeemed / pVal);
+        }
+
         // Build Sale Data Structure
         const saleRecord = {
             id: 'sale_' + Date.now(),
@@ -770,6 +783,7 @@ const AppPOS = (function () {
             })),
             subtotal: totals.subtotal,
             discountAmount: totals.discountAmount,
+            pointsClaimed: pointsRedeemedCount,
             taxRate: totals.taxRate,
             taxAmount: totals.taxAmount,
             totalAmount: totals.grandTotal,

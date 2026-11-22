@@ -229,9 +229,17 @@ const AppRouter = (function () {
     /**
      * View existing sale in the Invoice Modal
      */
-    async function viewSaleInvoice(saleId) {
-        if (!saleId) return;
-        const sale = await AppDB.getById('sales', saleId);
+    async function viewSaleInvoice(saleIdOrInvoiceNo) {
+        if (!saleIdOrInvoiceNo) return;
+        // Try getting by ID first
+        let sale = await AppDB.getById('sales', saleIdOrInvoiceNo);
+        // If not found by ID, query by invoiceNo
+        if (!sale) {
+            const matches = await AppDB.query('sales', s => s.invoiceNo === saleIdOrInvoiceNo);
+            if (matches && matches.length > 0) {
+                sale = matches[0];
+            }
+        }
         if (sale) {
             if (window.AppInvoice) {
                 AppInvoice.showInvoice(sale);
@@ -239,7 +247,7 @@ const AppRouter = (function () {
                 AppInvoice.showInvoice(sale);
             }
         } else {
-            AppNotification.toast('Not Found', 'Could not find invoice record.', 'error');
+            AppNotification.toast('Not Found', `Could not find invoice record (${saleIdOrInvoiceNo}).`, 'error');
         }
     }
 

@@ -391,7 +391,8 @@ const AppInventory = (function () {
             document.getElementById('itemValveType').value = item.valveType || '';
             document.getElementById('itemCostPrice').value = item.costPrice || 0;
             document.getElementById('itemSellingPrice').value = item.sellingPrice || 0;
-            document.getElementById('itemStock').value = item.stock || 0;
+            const stockInput = document.getElementById('itemStock');
+            if (stockInput) stockInput.value = item.stock || 0;
             document.getElementById('itemMinAlert').value = item.minStockAlert || 5;
             document.getElementById('itemSku').value = item.sku || '';
             document.getElementById('itemLocation').value = item.location || '';
@@ -399,7 +400,8 @@ const AppInventory = (function () {
             title.textContent = 'Add New Tyre / Tube Item';
             document.getElementById('itemId').value = '';
             document.getElementById('itemMinAlert').value = '5';
-            document.getElementById('itemStock').value = '10';
+            const stockInput = document.getElementById('itemStock');
+            if (stockInput) stockInput.value = '0';
             generateAutoSKU();
         }
 
@@ -424,7 +426,14 @@ const AppInventory = (function () {
         const valveType = document.getElementById('itemValveType').value.trim();
         const costPrice = parseFloat(document.getElementById('itemCostPrice').value) || 0;
         const sellingPrice = parseFloat(document.getElementById('itemSellingPrice').value) || 0;
-        const stock = parseInt(document.getElementById('itemStock').value, 10) || 0;
+        const stockInput = document.getElementById('itemStock');
+        let stock = stockInput ? (parseInt(stockInput.value, 10) || 0) : 0;
+        if (!id && !stockInput) {
+            stock = 0; // New items start with 0 stock until Stocked In
+        } else if (id && !stockInput) {
+            const existingItem = await AppDB.getById('items', id);
+            stock = existingItem ? (existingItem.stock || 0) : 0;
+        }
         const minStockAlert = parseInt(document.getElementById('itemMinAlert').value, 10) || 5;
         const sku = document.getElementById('itemSku').value.trim();
         const location = document.getElementById('itemLocation').value.trim();

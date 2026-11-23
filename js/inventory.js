@@ -391,7 +391,9 @@ const AppInventory = (function () {
             document.getElementById('itemValveType').value = item.valveType || '';
             document.getElementById('itemCostPrice').value = item.costPrice || 0;
             document.getElementById('itemSellingPrice').value = item.sellingPrice || 0;
+            const stockGroup = document.getElementById('itemStockGroup');
             const stockInput = document.getElementById('itemStock');
+            if (stockGroup) stockGroup.style.display = 'block'; // Show stock input when Editing
             if (stockInput) stockInput.value = item.stock || 0;
             document.getElementById('itemMinAlert').value = item.minStockAlert || 5;
             document.getElementById('itemSku').value = item.sku || '';
@@ -400,7 +402,9 @@ const AppInventory = (function () {
             title.textContent = 'Add New Tyre / Tube Item';
             document.getElementById('itemId').value = '';
             document.getElementById('itemMinAlert').value = '5';
+            const stockGroup = document.getElementById('itemStockGroup');
             const stockInput = document.getElementById('itemStock');
+            if (stockGroup) stockGroup.style.display = 'none'; // Hide in Add mode (new items start with 0 stock until Stock In)
             if (stockInput) stockInput.value = '0';
             generateAutoSKU();
         }

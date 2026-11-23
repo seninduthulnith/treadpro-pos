@@ -290,9 +290,12 @@ const AppRouter = (function () {
                         </div>
                     </td>
                     <td><strong>${currency}${Number(pur.totalAmount || 0).toFixed(2)}</strong></td>
-                    <td style="text-align: right;">
-                        <button class="btn btn-outline-primary btn-sm" onclick="AppInventory.openStockInModal(null, '${pur.id}')" title="Edit Date & Record" style="padding: 4px 8px; font-size: 11.5px;">
+                    <td style="text-align: right; white-space: nowrap;">
+                        <button class="btn btn-outline-primary btn-sm" onclick="AppInventory.openStockInModal(null, '${pur.id}')" title="Edit Date & Record" style="padding: 4px 8px; font-size: 11.5px; margin-right: 4px;">
                             ✏️ Edit
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" onclick="AppInventory.deletePurchase('${pur.id}')" title="Delete Record" style="padding: 4px 8px; font-size: 11.5px; color: #dc2626; border-color: #fca5a5;">
+                            🗑️ Delete
                         </button>
                     </td>
                 </tr>

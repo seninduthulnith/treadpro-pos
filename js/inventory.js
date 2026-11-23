@@ -750,6 +750,59 @@ const AppInventory = (function () {
             .replace(/'/g, '&#39;');
     }
 
+    /**
+     * Delete a Purchase / Stock In Record
+     * Also reverts the inventory stock quantity that was added by this purchase
+     */
+    async function deletePurchase(purchaseId) {
+        if (!AppAuth.hasPermission('stock_in') && !AppAuth.isAdmin()) {
+            AppNotification.toast('Access Denied', 'You do not have permission to delete stock in records.', 'warning');
+            return;
+        }
+
+        const pur = await AppDB.getById('purchases', purchaseId);
+        if (!pur) {
+            AppNotification.toast('Not Found', 'Purchase record not found.', 'error');
+            return;
+        }
+
+        const confirmed = confirm(`Are you sure you want to delete purchase record "${pur.purchaseNo}"? This will also revert the stock quantity added by this purchase.`);
+        if (!confirmed) return;
+
+        try {
+            // Revert stock additions
+            if (pur.items && Array.isArray(pur.items)) {
+                for (const purchItem of pur.items) {
+                    if (purchItem.itemId) {
+                        const item = getItemById(purchItem.itemId) || await AppDB.getById('items', purchItem.itemId);
+                        if (item) {
+                            const newStock = Math.max(0, (item.stock || 0) - Number(purchItem.quantity || 0));
+                            item.stock = newStock;
+                            item.updatedAt = new Date().toISOString();
+                            await AppDB.update('items', item);
+                        }
+                    }
+                }
+            }
+
+            // Delete purchase record from DB
+            await AppDB.remove('purchases', purchaseId);
+
+            AppNotification.toast('Deleted', `Purchase order ${pur.purchaseNo} removed and stock reverted.`, 'info');
+
+            // Refresh UI
+            await loadItems();
+            if (window.AppRouter && AppRouter.renderPurchasesHistory) {
+                await AppRouter.renderPurchasesHistory();
+            }
+            if (window.AppAnalytics) AppAnalytics.refreshCharts();
+            if (window.AppPOS) AppPOS.loadProducts();
+        } catch (err) {
+            console.error('Error deleting purchase:', err);
+            AppNotification.toast('Error', 'Failed to delete purchase record.', 'error');
+        }
+    }
+
     return {
         init,
         loadItems,
@@ -758,7 +811,8 @@ const AppInventory = (function () {
         renderInventoryTable,
         openItemModal,
         openStockInModal,
-        deleteItem
+        deleteItem,
+        deletePurchase
     };
 })();
 

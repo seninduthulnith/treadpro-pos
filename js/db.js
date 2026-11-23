@@ -216,18 +216,17 @@ const AppDB = (function () {
             salesStore.add(saleData);
 
             // 2. Decrement stock for inventory items (skip non-inventory services)
+            const updatedProductsToSync = [];
             saleData.items.forEach(saleItem => {
                 if (saleItem.itemId && saleItem.category !== 'service') {
                     const itemReq = itemsStore.get(saleItem.itemId);
                     itemReq.onsuccess = () => {
                         const product = itemReq.result;
                         if (product) {
-                            product.stock = Math.max(0, (product.stock || 0) - saleItem.quantity);
+                            product.stock = Math.max(0, (product.stock || 0) - Number(saleItem.quantity));
                             product.updatedAt = new Date().toISOString();
                             itemsStore.put(product);
-                            if (window.AppFirebase && AppFirebase.isReady()) {
-                                AppFirebase.syncRecord('items', product).catch(() => {});
-                            }
+                            updatedProductsToSync.push(product);
                         }
                     };
                 }
@@ -236,6 +235,10 @@ const AppDB = (function () {
             tx.oncomplete = () => {
                 if (window.AppFirebase && AppFirebase.isReady()) {
                     AppFirebase.syncRecord('sales', saleData).catch(() => {});
+                    // Sync every updated product to cloud immediately
+                    updatedProductsToSync.forEach(prod => {
+                        AppFirebase.syncRecord('items', prod).catch(() => {});
+                    });
                 }
                 resolve(saleData);
             };

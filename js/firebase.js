@@ -199,6 +199,15 @@ const AppFirebase = (function () {
                         // Update or add to local DB
                         const existing = await AppDB.getById(storeName, data.id || data.key);
                         if (existing) {
+                            // Timestamp guard: only overwrite local item if cloud item is actually newer!
+                            // Prevents stale cloud copies from wiping out newly deducted local stock
+                            if (storeName === 'items' && existing.updatedAt && data.updatedAt) {
+                                if (new Date(existing.updatedAt).getTime() > new Date(data.updatedAt).getTime()) {
+                                    // Local item is NEWER than cloud copy (e.g. just sold/deducted) -> push local to cloud instead
+                                    await fbDb.collection('items').doc(String(existing.id)).set(existing, { merge: true });
+                                    continue;
+                                }
+                            }
                             await AppDB.update(storeName, data);
                         } else {
                             await AppDB.add(storeName, data);

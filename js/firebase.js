@@ -174,42 +174,69 @@ const AppFirebase = (function () {
     /**
      * Restore ALL shop records from Cloud Firestore down into local IndexedDB
      */
-    async function restoreAllFromCloud() {
+    async function restoreAllFromCloud(silent = false) {
         if (!isReady()) {
+            if (silent) return 0;
             throw new Error('Firebase Cloud is not initialized. Check your internet connection.');
         }
 
-        updateSyncStatusUI('Fetching backup from Google Cloud...', 'warning');
+        if (!silent) updateSyncStatusUI('Fetching backup from Google Cloud...', 'warning');
 
         const stores = ['items', 'sales', 'purchases', 'services', 'users', 'settings', 'expenses', 'investments'];
         let totalRestored = 0;
 
         for (const storeName of stores) {
-            const snap = await fbDb.collection(storeName).get();
-            if (snap.empty) continue;
+            try {
+                const snap = await fbDb.collection(storeName).get();
+                if (snap.empty) continue;
 
-            for (const doc of snap.docs) {
-                const data = doc.data();
-                delete data._cloudSyncedAt;
-                delete data._updatedAt;
+                for (const doc of snap.docs) {
+                    const data = doc.data();
+                    delete data._cloudSyncedAt;
+                    delete data._updatedAt;
 
-                try {
-                    // Update or add to local DB
-                    const existing = await AppDB.getById(storeName, data.id || data.key);
-                    if (existing) {
-                        await AppDB.update(storeName, data);
-                    } else {
-                        await AppDB.add(storeName, data);
+                    try {
+                        // Update or add to local DB
+                        const existing = await AppDB.getById(storeName, data.id || data.key);
+                        if (existing) {
+                            await AppDB.update(storeName, data);
+                        } else {
+                            await AppDB.add(storeName, data);
+                        }
+                        totalRestored++;
+                    } catch (e) {
+                        console.warn(`Local save error during cloud restore [${storeName}]:`, e);
                     }
-                    totalRestored++;
-                } catch (e) {
-                    console.warn(`Local save error during cloud restore [${storeName}]:`, e);
                 }
+            } catch (colErr) {
+                console.warn(`Error fetching cloud collection [${storeName}]:`, colErr);
             }
         }
 
-        updateSyncStatusUI(`Restored ${totalRestored} records from Google Cloud!`, 'success');
+        if (!silent) {
+            updateSyncStatusUI(`Restored ${totalRestored} records from Google Cloud!`, 'success');
+        } else if (totalRestored > 0) {
+            console.log(`☁️ Auto-synced ${totalRestored} records down from Cloud to local database.`);
+            updateSyncStatusUI(`Auto-synced (${new Date().toLocaleTimeString()})`, 'success');
+        }
         return totalRestored;
+    }
+
+    /**
+     * Auto Sync on Startup:
+     * Pulls latest cloud data to ensure any new device has the latest shop state,
+     * users, sales, items, and settings without requiring manual clicks.
+     */
+    async function autoSyncOnStartup() {
+        if (!isReady()) return;
+        try {
+            console.log('☁️ Checking Google Cloud for latest updates...');
+            const count = await restoreAllFromCloud(true);
+            return count;
+        } catch (err) {
+            console.warn('Startup cloud sync notice:', err);
+            return 0;
+        }
     }
 
     /**
@@ -229,7 +256,8 @@ const AppFirebase = (function () {
         syncRecord,
         backupAllToCloud,
         clearCloudStoreData,
-        restoreAllFromCloud
+        restoreAllFromCloud,
+        autoSyncOnStartup
     };
 })();
 

@@ -460,10 +460,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         // 1. Initialize IndexedDB
         await AppDB.openDB();
 
-        // 2. Initialize Firebase Cloud Sync
+        // 2. Initialize Firebase Cloud Sync & Auto-Download updates
         if (window.AppFirebase) {
             try {
                 AppFirebase.init();
+                // Full Auto-Sync: Automatically download/pull latest records from Google Cloud
+                // on startup so new devices immediately get created users, stock, and sales
+                await AppFirebase.autoSyncOnStartup();
             } catch (fbInitErr) {
                 console.warn('Firebase init deferred:', fbInitErr);
             }

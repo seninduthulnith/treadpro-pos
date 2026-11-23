@@ -292,15 +292,36 @@ const AppDB = (function () {
     async function seedInitialDataIfNeeded() {
         const users = await getAll('users');
         if (users.length > 0) {
-            return; // Already initialized
+            // Ensure default manager user exists even on existing databases
+            const hasManager = users.some(u => u.username.toLowerCase() === 'manager');
+            if (!hasManager) {
+                try {
+                    const managerHash = await AppCrypto.hashPassword('manager123');
+                    await add('users', {
+                        id: 'usr_manager',
+                        username: 'manager',
+                        fullName: 'Shop Manager',
+                        role: 'manager',
+                        passwordHash: managerHash.hash,
+                        passwordSalt: managerHash.salt,
+                        status: 'active',
+                        createdAt: new Date().toISOString()
+                    });
+                } catch (e) {
+                    console.warn('Default manager seed check:', e);
+                }
+            }
+            return;
         }
 
         console.log('Seeding initial TreadPro store data...');
 
         // 1. Initialize Default Users with PBKDF2 Hashed Passwords
         // 'admin' -> password 'admin123'
+        // 'manager' -> password 'manager123'
         // 'cashier' -> password 'cashier123'
         const adminHash = await AppCrypto.hashPassword('admin123');
+        const managerHash = await AppCrypto.hashPassword('manager123');
         const cashierHash = await AppCrypto.hashPassword('cashier123');
 
         const initialUsers = [
@@ -311,6 +332,16 @@ const AppDB = (function () {
                 role: 'admin',
                 passwordHash: adminHash.hash,
                 passwordSalt: adminHash.salt,
+                status: 'active',
+                createdAt: new Date().toISOString()
+            },
+            {
+                id: 'usr_manager',
+                username: 'manager',
+                fullName: 'Shop Manager',
+                role: 'manager',
+                passwordHash: managerHash.hash,
+                passwordSalt: managerHash.salt,
                 status: 'active',
                 createdAt: new Date().toISOString()
             },

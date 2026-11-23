@@ -609,6 +609,7 @@
                                         <th>Supplier Bill No.</th>
                                         <th>Items Restocked</th>
                                         <th>Total Expenditure</th>
+                                        <th style="text-align: right;">Action</th>
                                     </tr>
                                 </thead>
                                 <tbody id="purchasesTableBody">
@@ -1129,12 +1130,13 @@
     <div id="stockInModal" class="modal-overlay">
         <div class="modal-dialog">
             <div class="modal-header">
-                <h3>📥 Stock In / Purchase Receipt</h3>
+                <h3 id="stockInModalTitle">📥 Stock In / Purchase Receipt</h3>
                 <button class="btn-modal-close" onclick="closeModal('stockInModal')">✕</button>
             </div>
             <form id="stockInForm">
+                <input type="hidden" id="stockInPurchaseId" value="">
                 <div class="modal-body">
-                    <div class="form-group">
+                    <div class="form-group" id="stockInItemSelectGroup">
                         <label for="stockInItemSelect">Select Tyre / Tube to Restock *</label>
                         <select id="stockInItemSelect" class="form-control" required>
                             <!-- Injected dynamically -->
@@ -1181,7 +1183,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" onclick="closeModal('stockInModal')">Cancel</button>
-                    <button type="submit" class="btn btn-emerald">📥 Add Stock to Inventory</button>
+                    <button type="submit" id="stockInSubmitBtn" class="btn btn-emerald">📥 Add Stock to Inventory</button>
                 </div>
             </form>
         </div>

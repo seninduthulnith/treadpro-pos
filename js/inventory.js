@@ -531,9 +531,9 @@ const AppInventory = (function () {
     }
 
     /**
-     * Open Stock In / Purchase Order Modal
+     * Open Stock In / Purchase Order Modal (For New Stock In OR Editing Existing Purchase)
      */
-    function openStockInModal(preselectedItemId = null) {
+    async function openStockInModal(preselectedItemId = null, editPurchaseId = null) {
         if (!AppAuth.hasPermission('stock_in')) {
             AppNotification.toast('Permission Denied', 'Your user role cannot perform Stock In.', 'warning');
             return;
@@ -542,6 +542,10 @@ const AppInventory = (function () {
         const modal = document.getElementById('stockInModal');
         const form = document.getElementById('stockInForm');
         const select = document.getElementById('stockInItemSelect');
+        const modalTitle = document.getElementById('stockInModalTitle');
+        const submitBtn = document.getElementById('stockInSubmitBtn');
+        const hiddenId = document.getElementById('stockInPurchaseId');
+        const itemSelectGroup = document.getElementById('stockInItemSelectGroup');
 
         if (!modal || !form || !select) return;
 
@@ -555,24 +559,55 @@ const AppInventory = (function () {
                 </option>
             `).join('');
 
-        // If preselected, autofill current cost
-        if (preselectedItemId) {
-            const item = getItemById(preselectedItemId);
-            if (item) {
-                document.getElementById('stockInUnitCost').value = item.costPrice || 0;
+        if (editPurchaseId) {
+            // EDIT MODE
+            const pur = await AppDB.getById('purchases', editPurchaseId);
+            if (!pur) {
+                AppNotification.toast('Not Found', 'Purchase record not found.', 'error');
+                return;
             }
+
+            if (modalTitle) modalTitle.textContent = '✏️ Edit Purchase / Stock In Record';
+            if (submitBtn) submitBtn.textContent = '💾 Update Record';
+            if (hiddenId) hiddenId.value = pur.id;
+
+            const firstItem = (pur.items && pur.items[0]) ? pur.items[0] : null;
+            if (firstItem && select) {
+                select.value = firstItem.itemId || '';
+            }
+            // In edit mode, disable item select to avoid stock confusion if needed, or keep enabled
+            document.getElementById('stockInQuantity').value = firstItem ? firstItem.quantity : 1;
+            document.getElementById('stockInUnitCost').value = firstItem ? firstItem.unitCost : (pur.totalAmount || 0);
+            document.getElementById('stockInSupplier').value = pur.supplier || '';
+            document.getElementById('stockInSupplierInvoice').value = pur.supplierInvoiceNo || '';
+            document.getElementById('stockInRefNo').value = pur.purchaseNo || '';
+            document.getElementById('stockInDate').value = pur.date ? new Date(pur.date).toISOString().substring(0, 10) : '';
+            document.getElementById('stockInNotes').value = pur.notes || '';
+        } else {
+            // NEW STOCK IN MODE
+            if (modalTitle) modalTitle.textContent = '📥 Stock In / Purchase Receipt';
+            if (submitBtn) submitBtn.textContent = '📥 Add Stock to Inventory';
+            if (hiddenId) hiddenId.value = '';
+
+            // If preselected, autofill current cost
+            if (preselectedItemId) {
+                const item = getItemById(preselectedItemId);
+                if (item) {
+                    document.getElementById('stockInUnitCost').value = item.costPrice || 0;
+                }
+            }
+
+            // Set default date to today
+            document.getElementById('stockInDate').value = new Date().toISOString().substring(0, 10);
+            document.getElementById('stockInQuantity').value = 10;
+
+            // Auto generate Purchase reference
+            document.getElementById('stockInRefNo').value = 'PUR-' + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000);
         }
-
-        // Set default date to today
-        document.getElementById('stockInDate').value = new Date().toISOString().substring(0, 10);
-        document.getElementById('stockInQuantity').value = 10;
-
-        // Auto generate Purchase reference
-        document.getElementById('stockInRefNo').value = 'PUR-' + new Date().getFullYear() + '-' + Math.floor(1000 + Math.random() * 9000);
 
         select.onchange = () => {
             const chosen = getItemById(select.value);
-            if (chosen) {
+            if (chosen && !editPurchaseId) {
                 document.getElementById('stockInUnitCost').value = chosen.costPrice || 0;
             }
         };
@@ -581,11 +616,12 @@ const AppInventory = (function () {
     }
 
     /**
-     * Process Stock In Form Submission
+     * Process Stock In Form Submission (Handles both Create and Edit)
      */
     async function handleStockInSubmit(e) {
         e.preventDefault();
 
+        const editId = document.getElementById('stockInPurchaseId')?.value;
         const itemId = document.getElementById('stockInItemSelect').value;
         const quantity = parseInt(document.getElementById('stockInQuantity').value, 10);
         const unitCost = parseFloat(document.getElementById('stockInUnitCost').value) || 0;
@@ -594,6 +630,67 @@ const AppInventory = (function () {
         const dateStr = document.getElementById('stockInDate').value || new Date().toISOString();
         const notes = document.getElementById('stockInNotes').value.trim();
 
+        if (editId) {
+            // Update existing purchase record (e.g. date, supplier, invoice #, unitCost, quantity)
+            try {
+                const existingPur = await AppDB.getById('purchases', editId);
+                if (!existingPur) {
+                    AppNotification.toast('Error', 'Purchase record not found.', 'error');
+                    return;
+                }
+
+                const prevItem = (existingPur.items && existingPur.items[0]) ? existingPur.items[0] : null;
+                const prevQty = prevItem ? Number(prevItem.quantity || 0) : 0;
+                const qtyDiff = quantity - prevQty; // Positive if increased, negative if decreased
+
+                const item = getItemById(itemId) || (prevItem ? getItemById(prevItem.itemId) : null);
+
+                // Update purchase record
+                existingPur.date = new Date(dateStr).toISOString();
+                existingPur.supplier = supplier;
+                existingPur.supplierInvoiceNo = invoiceRef;
+                existingPur.notes = notes;
+                existingPur.totalAmount = quantity * unitCost;
+                existingPur.updatedAt = new Date().toISOString();
+
+                if (existingPur.items && existingPur.items[0]) {
+                    existingPur.items[0].quantity = quantity;
+                    existingPur.items[0].unitCost = unitCost;
+                    existingPur.items[0].totalCost = quantity * unitCost;
+                    if (item) {
+                        existingPur.items[0].itemId = item.id;
+                        existingPur.items[0].itemName = `${item.brand} ${item.name} (${item.size})`;
+                    }
+                }
+
+                await AppDB.update('purchases', existingPur);
+
+                // If quantity changed and item exists, adjust stock
+                if (qtyDiff !== 0 && item) {
+                    item.stock = Math.max(0, (item.stock || 0) + qtyDiff);
+                    if (unitCost > 0) item.costPrice = unitCost;
+                    item.updatedAt = new Date().toISOString();
+                    await AppDB.update('items', item);
+                }
+
+                AppNotification.toast('Purchase Updated', `Record ${existingPur.purchaseNo} updated successfully.`, 'success');
+                document.getElementById('stockInModal').classList.remove('active');
+
+                // Reload views
+                await loadItems();
+                if (window.AppRouter && AppRouter.renderPurchasesHistory) {
+                    await AppRouter.renderPurchasesHistory();
+                }
+                if (window.AppAnalytics) AppAnalytics.refreshCharts();
+                return;
+            } catch (err) {
+                console.error('Error updating purchase:', err);
+                AppNotification.toast('Error', 'Failed to update purchase record.', 'error');
+                return;
+            }
+        }
+
+        // --- NEW PURCHASE CREATION ---
         if (!itemId || isNaN(quantity) || quantity <= 0) {
             AppNotification.toast('Validation Error', 'Please select an item and enter a valid quantity > 0.', 'error');
             return;
@@ -631,6 +728,9 @@ const AppInventory = (function () {
             await loadItems();
             if (window.AppPOS) AppPOS.loadProducts();
             if (window.AppAnalytics) AppAnalytics.refreshCharts();
+            if (window.AppRouter && AppRouter.renderPurchasesHistory) {
+                await AppRouter.renderPurchasesHistory();
+            }
         } catch (err) {
             console.error('Error processing Stock In:', err);
             AppNotification.toast('Error', 'Failed to add stock. Please try again.', 'error');

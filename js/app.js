@@ -290,6 +290,11 @@ const AppRouter = (function () {
                         </div>
                     </td>
                     <td><strong>${currency}${Number(pur.totalAmount || 0).toFixed(2)}</strong></td>
+                    <td style="text-align: right;">
+                        <button class="btn btn-outline-primary btn-sm" onclick="AppInventory.openStockInModal(null, '${pur.id}')" title="Edit Date & Record" style="padding: 4px 8px; font-size: 11.5px;">
+                            ✏️ Edit
+                        </button>
+                    </td>
                 </tr>
             `;
         }).join('');

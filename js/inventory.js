@@ -789,8 +789,13 @@ const AppInventory = (function () {
                 }
             }
 
-            // Delete purchase record from DB
+            // Delete purchase record from local DB
             await AppDB.remove('purchases', purchaseId);
+
+            // Also delete from Firebase Firestore so it doesn't reappear after refresh
+            if (window.AppFirebase && AppFirebase.isReady()) {
+                await AppFirebase.deleteRecord('purchases', purchaseId);
+            }
 
             AppNotification.toast('Deleted', `Purchase order ${pur.purchaseNo} removed and stock reverted.`, 'info');
 

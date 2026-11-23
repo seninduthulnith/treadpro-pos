@@ -259,10 +259,25 @@ const AppFirebase = (function () {
         }
     }
 
+    /**
+     * Delete a single record from Cloud Firestore by store + id.
+     * Called whenever a local IndexedDB record is permanently deleted.
+     */
+    async function deleteRecord(storeName, id) {
+        if (!isReady()) return;
+        try {
+            await fbDb.collection(storeName).doc(String(id)).delete();
+            console.log(`☁️ Deleted from Firestore: [${storeName}/${id}]`);
+        } catch (err) {
+            console.warn(`Firestore delete error for [${storeName}/${id}]:`, err);
+        }
+    }
+
     return {
         init,
         isReady,
         syncRecord,
+        deleteRecord,
         backupAllToCloud,
         clearCloudStoreData,
         restoreAllFromCloud,
